@@ -1,0 +1,10 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Neural IK Studio local library (generated datasets, trained runs, rendered images)
+ui/workspace/
+
+# generated datasets
+data/*.npz
