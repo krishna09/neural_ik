@@ -1,0 +1,19 @@
+{
+ "id": "20260928-144758_xarm6",
+ "kind": "legacy-ui",
+ "robot": "xarm6",
+ "dataset_id": "ds_20260928-152858_xarm6_n20000_s0",
+ "status": "images only",
+ "created": 1790587086.1214972,
+ "params": {
+  "epochs": 60,
+  "collision_epochs": 15
+ },
+ "epochs": [],
+ "metrics": {},
+ "collision_metrics": {},
+ "evaluations": [],
+ "models": null,
+ "manifest": "renders/manifest.json",
+ "notes": "Images only: this run's model files were overwritten by a later training run before the library existed, so it cannot be evaluated or used for inference. Training dataset identified by matching its 8 tracked cases."
+}

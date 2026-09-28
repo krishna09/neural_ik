@@ -1,0 +1,426 @@
+{
+ "id": "proj_20260928-141727_kuka_iiwa",
+ "kind": "project-import",
+ "robot": "kuka_iiwa",
+ "dataset_id": "ds_20260928-152908_kuka_iiwa_n20000_s0",
+ "status": "done",
+ "created": 1790585247.1801481,
+ "params": {
+  "epochs": 60
+ },
+ "epochs": [
+  {
+   "phase": "ik",
+   "epoch": 1,
+   "epochs": 60,
+   "val_mse": 0.13327148854732512
+  },
+  {
+   "phase": "ik",
+   "epoch": 2,
+   "epochs": 60,
+   "val_mse": 0.09095181077718735
+  },
+  {
+   "phase": "ik",
+   "epoch": 3,
+   "epochs": 60,
+   "val_mse": 0.06965602487325669
+  },
+  {
+   "phase": "ik",
+   "epoch": 4,
+   "epochs": 60,
+   "val_mse": 0.054941576719284055
+  },
+  {
+   "phase": "ik",
+   "epoch": 5,
+   "epochs": 60,
+   "val_mse": 0.049782755225896834
+  },
+  {
+   "phase": "ik",
+   "epoch": 6,
+   "epochs": 60,
+   "val_mse": 0.046504545211791995
+  },
+  {
+   "phase": "ik",
+   "epoch": 7,
+   "epochs": 60,
+   "val_mse": 0.046284479647874834
+  },
+  {
+   "phase": "ik",
+   "epoch": 8,
+   "epochs": 60,
+   "val_mse": 0.0427102081477642
+  },
+  {
+   "phase": "ik",
+   "epoch": 9,
+   "epochs": 60,
+   "val_mse": 0.04274461939930916
+  },
+  {
+   "phase": "ik",
+   "epoch": 10,
+   "epochs": 60,
+   "val_mse": 0.041616274416446684
+  },
+  {
+   "phase": "ik",
+   "epoch": 11,
+   "epochs": 60,
+   "val_mse": 0.04104394912719726
+  },
+  {
+   "phase": "ik",
+   "epoch": 12,
+   "epochs": 60,
+   "val_mse": 0.03997422531247139
+  },
+  {
+   "phase": "ik",
+   "epoch": 13,
+   "epochs": 60,
+   "val_mse": 0.039975110441446304
+  },
+  {
+   "phase": "ik",
+   "epoch": 14,
+   "epochs": 60,
+   "val_mse": 0.038789084553718566
+  },
+  {
+   "phase": "ik",
+   "epoch": 15,
+   "epochs": 60,
+   "val_mse": 0.038985388725996016
+  },
+  {
+   "phase": "ik",
+   "epoch": 16,
+   "epochs": 60,
+   "val_mse": 0.03905167281627655
+  },
+  {
+   "phase": "ik",
+   "epoch": 17,
+   "epochs": 60,
+   "val_mse": 0.03760717585682869
+  },
+  {
+   "phase": "ik",
+   "epoch": 18,
+   "epochs": 60,
+   "val_mse": 0.03785866051912308
+  },
+  {
+   "phase": "ik",
+   "epoch": 19,
+   "epochs": 60,
+   "val_mse": 0.03690262511372566
+  },
+  {
+   "phase": "ik",
+   "epoch": 20,
+   "epochs": 60,
+   "val_mse": 0.03700472339987755
+  },
+  {
+   "phase": "ik",
+   "epoch": 21,
+   "epochs": 60,
+   "val_mse": 0.037360815703868865
+  },
+  {
+   "phase": "ik",
+   "epoch": 22,
+   "epochs": 60,
+   "val_mse": 0.036382879316806796
+  },
+  {
+   "phase": "ik",
+   "epoch": 23,
+   "epochs": 60,
+   "val_mse": 0.0361811950802803
+  },
+  {
+   "phase": "ik",
+   "epoch": 24,
+   "epochs": 60,
+   "val_mse": 0.03565577194094658
+  },
+  {
+   "phase": "ik",
+   "epoch": 25,
+   "epochs": 60,
+   "val_mse": 0.035239508002996446
+  },
+  {
+   "phase": "ik",
+   "epoch": 26,
+   "epochs": 60,
+   "val_mse": 0.035135868936777115
+  },
+  {
+   "phase": "ik",
+   "epoch": 27,
+   "epochs": 60,
+   "val_mse": 0.035572972148656845
+  },
+  {
+   "phase": "ik",
+   "epoch": 28,
+   "epochs": 60,
+   "val_mse": 0.03637840449810028
+  },
+  {
+   "phase": "ik",
+   "epoch": 29,
+   "epochs": 60,
+   "val_mse": 0.034795035421848294
+  },
+  {
+   "phase": "ik",
+   "epoch": 30,
+   "epochs": 60,
+   "val_mse": 0.034106101095676425
+  },
+  {
+   "phase": "ik",
+   "epoch": 31,
+   "epochs": 60,
+   "val_mse": 0.03444462046027184
+  },
+  {
+   "phase": "ik",
+   "epoch": 32,
+   "epochs": 60,
+   "val_mse": 0.03442914485931396
+  },
+  {
+   "phase": "ik",
+   "epoch": 33,
+   "epochs": 60,
+   "val_mse": 0.03398566693067551
+  },
+  {
+   "phase": "ik",
+   "epoch": 34,
+   "epochs": 60,
+   "val_mse": 0.033584427833557126
+  },
+  {
+   "phase": "ik",
+   "epoch": 35,
+   "epochs": 60,
+   "val_mse": 0.034686251729726794
+  },
+  {
+   "phase": "ik",
+   "epoch": 36,
+   "epochs": 60,
+   "val_mse": 0.03392287790775299
+  },
+  {
+   "phase": "ik",
+   "epoch": 37,
+   "epochs": 60,
+   "val_mse": 0.034284701198339464
+  },
+  {
+   "phase": "ik",
+   "epoch": 38,
+   "epochs": 60,
+   "val_mse": 0.033991722762584685
+  },
+  {
+   "phase": "ik",
+   "epoch": 39,
+   "epochs": 60,
+   "val_mse": 0.035008151829242704
+  },
+  {
+   "phase": "ik",
+   "epoch": 40,
+   "epochs": 60,
+   "val_mse": 0.0337084174156189
+  },
+  {
+   "phase": "ik",
+   "epoch": 41,
+   "epochs": 60,
+   "val_mse": 0.033580654114484784
+  },
+  {
+   "phase": "ik",
+   "epoch": 42,
+   "epochs": 60,
+   "val_mse": 0.03244408220052719
+  },
+  {
+   "phase": "ik",
+   "epoch": 43,
+   "epochs": 60,
+   "val_mse": 0.03264065086841583
+  },
+  {
+   "phase": "ik",
+   "epoch": 44,
+   "epochs": 60,
+   "val_mse": 0.03335525989532471
+  },
+  {
+   "phase": "ik",
+   "epoch": 45,
+   "epochs": 60,
+   "val_mse": 0.032508638501167295
+  },
+  {
+   "phase": "ik",
+   "epoch": 46,
+   "epochs": 60,
+   "val_mse": 0.03249501846730709
+  },
+  {
+   "phase": "ik",
+   "epoch": 47,
+   "epochs": 60,
+   "val_mse": 0.0316764198243618
+  },
+  {
+   "phase": "ik",
+   "epoch": 48,
+   "epochs": 60,
+   "val_mse": 0.03223945051431656
+  },
+  {
+   "phase": "ik",
+   "epoch": 49,
+   "epochs": 60,
+   "val_mse": 0.03311881124973297
+  },
+  {
+   "phase": "ik",
+   "epoch": 50,
+   "epochs": 60,
+   "val_mse": 0.03160480223596096
+  },
+  {
+   "phase": "ik",
+   "epoch": 51,
+   "epochs": 60,
+   "val_mse": 0.032043369486927986
+  },
+  {
+   "phase": "ik",
+   "epoch": 52,
+   "epochs": 60,
+   "val_mse": 0.03162083886563778
+  },
+  {
+   "phase": "ik",
+   "epoch": 53,
+   "epochs": 60,
+   "val_mse": 0.031277493387460706
+  },
+  {
+   "phase": "ik",
+   "epoch": 54,
+   "epochs": 60,
+   "val_mse": 0.030998116359114647
+  },
+  {
+   "phase": "ik",
+   "epoch": 55,
+   "epochs": 60,
+   "val_mse": 0.031386037543416026
+  },
+  {
+   "phase": "ik",
+   "epoch": 56,
+   "epochs": 60,
+   "val_mse": 0.031212329491972925
+  },
+  {
+   "phase": "ik",
+   "epoch": 57,
+   "epochs": 60,
+   "val_mse": 0.03211979940533638
+  },
+  {
+   "phase": "ik",
+   "epoch": 58,
+   "epochs": 60,
+   "val_mse": 0.03143446035683155
+  },
+  {
+   "phase": "ik",
+   "epoch": 59,
+   "epochs": 60,
+   "val_mse": 0.030894184857606886
+  },
+  {
+   "phase": "ik",
+   "epoch": 60,
+   "epochs": 60,
+   "val_mse": 0.03162296749651432
+  }
+ ],
+ "metrics": {},
+ "collision_metrics": {},
+ "evaluations": [
+  {
+   "id": "eval_20260928-153418",
+   "dataset_id": "ds_20260928-153412_kuka_iiwa_n5000_s1",
+   "created": 1790589858.357718,
+   "n_rows": 5000,
+   "overlap": {
+    "level": "independent",
+    "note": "independent: generator seed 1 vs training seed 0"
+   },
+   "seed_mode": "true joints + N(0, 0.3)",
+   "summary": {
+    "n": 4281,
+    "pos_mean_mm": 134.83108763112634,
+    "pos_median_mm": 123.45320854980196,
+    "pos_p90_mm": 229.46711413425868,
+    "orn_mean_deg": 31.42903171778993,
+    "orn_median_deg": 29.392828645922297,
+    "acc_pos": {
+     "10": 0.09343611305769679,
+     "25": 1.2380284980144827,
+     "50": 7.288016818500351,
+     "100": 35.87946741415557
+    },
+    "acc_orn": {
+     "5": 0.5606166783461808,
+     "15": 12.730670404111189,
+     "30": 51.67017052090633
+    },
+    "joint_mae_deg": 10.72303581237793,
+    "self_collision_pct": 0.046718056528848396,
+    "limit_violation_pct": 2.9899556178462974
+   },
+   "collision": {
+    "n": 5000,
+    "n_colliding": 719,
+    "accuracy": 96.16,
+    "precision": 92.98531810766721,
+    "recall": 79.27677329624478
+   },
+   "secs": 0.31
+  }
+ ],
+ "models": {
+  "ik": "models/kuka_iiwa_ik_net.pt",
+  "collision": "models/kuka_iiwa_collision_net.pt",
+  "history": "models/kuka_iiwa_history.json"
+ },
+ "models_sha": "7836dac3dc4fca207b18d93d3f06682d8792095463448eb66f71a47c3ce2041a",
+ "manifest": null,
+ "notes": "Copied from the project's models/ folder (trained with train_ik.py on the command line on 28 Sep, on data/ generated with seed 0, n=20000). That data/ file was later removed from the project, so the training dataset was regenerated in the library with the same settings; its content fingerprint (1ba7b5a0...) matches the original file exactly. No held-out test split and no recorded train/validation split - evaluate on a dataset generated with a different seed for an independent test."
+}

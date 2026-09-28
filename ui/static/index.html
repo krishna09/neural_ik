@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neural IK Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+<header>
+  <div class="brand">Neural IK Studio <small>digital twin · Level 1</small></div>
+  <label class="row" style="flex:0 0 auto;gap:6px;color:var(--text-secondary)">Robot
+    <select id="robot-select" style="width:auto"></select>
+  </label>
+  <span id="robot-desc" class="hint"></span>
+  <div class="spacer"></div>
+  <span class="pill"><span id="job-dot" class="dot"></span><span id="job-text">idle</span></span>
+  <span class="pill"><span id="conn-dot" class="dot"></span><span id="conn-text">connecting</span></span>
+</header>
+
+<main class="layout">
+  <!-- ===================== LEFT: controls ===================== -->
+  <aside id="left">
+    <details class="panel">
+      <summary><span class="step">⚙</span>Robot &amp; Joints (Manual FK)</summary>
+      <div class="panel-body">
+        <div class="hint">Drag a joint to move the twin. Each move runs PyBullet forward kinematics + self-collision check on the server.</div>
+        <div id="jog" class="joints"></div>
+        <div class="row">
+          <button id="jog-zero">Zero pose</button>
+          <button id="jog-random">Random pose</button>
+        </div>
+        <dl class="kv" id="jog-readout"></dl>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary><span class="step">1</span>Generate Dataset</summary>
+      <div class="panel-body">
+        <div class="grid2">
+          <label class="field">Samples (n)<input id="gen-n" type="number" min="100" step="1000" value="20000"></label>
+          <label class="field">Seed<input id="gen-seed" type="number" value="0"></label>
+        </div>
+        <div class="split-box">
+          <div class="split-head">
+            <span>Movement split</span>
+            <label class="check" title="Keep whatever share of self-colliding samples generate() produces"><input type="checkbox" id="gen-natural" checked> Natural (as generated)</label>
+          </div>
+          <div class="grid2">
+            <label class="field" title="Collision-free movements – the only samples the IK network trains on"><span><i class="swatch free"></i>Successful %</span><input id="gen-free-pct" type="number" min="0" max="100" step="1" value="85"></label>
+            <label class="field"><span><i class="swatch coll"></i>Collision %</span><input id="gen-col-pct" type="number" min="0" max="100" step="1" value="15"></label>
+          </div>
+          <div class="splitbar" aria-hidden="true"><span id="gen-split-free"></span><span id="gen-split-col"></span></div>
+          <div id="gen-split-info" class="hint"></div>
+        </div>
+        <label class="field">Slow motion (ms per sample, 0 = full speed)
+          <input id="gen-delay" type="number" min="0" max="500" step="5" value="0">
+        </label>
+        <button id="gen-btn" class="primary">Generate dataset</button>
+        <div>
+          <div class="progress-label"><span id="gen-label">—</span><span id="gen-pct"></span></div>
+          <div class="progress"><div id="gen-bar"></div></div>
+        </div>
+        <dl class="kv" id="gen-kv"></dl>
+        <div class="hint">Runs <code>generate_dataset.generate()</code> unchanged. Every run is saved as a new library entry in <code>ui/workspace/library/datasets/</code> – nothing is overwritten.</div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary><span class="step">2</span>Dataset Browser (Every Sample)</summary>
+      <div class="panel-body">
+        <select id="ds-src"></select>
+        <div id="ds-info" class="hint">—</div>
+        <input id="ds-slider" type="range" min="0" max="0" value="0">
+        <div class="row">
+          <button id="ds-prev" class="icon" title="Previous sample">◀</button>
+          <input id="ds-index" type="number" min="0" value="0">
+          <button id="ds-next" class="icon" title="Next sample">▶</button>
+          <button id="ds-play" class="icon" title="Play through the dataset">▶ Play</button>
+          <select id="ds-fps" title="Playback speed" style="flex:0 0 72px">
+            <option value="2">2/s</option><option value="5">5/s</option>
+            <option value="10" selected>10/s</option><option value="25">25/s</option>
+          </select>
+        </div>
+        <div id="ds-detail"></div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary><span class="step">3</span>Train Model</summary>
+      <div class="panel-body">
+        <label class="field">Training dataset (library)<select id="tr-ds"></select></label>
+        <div class="field">Model (network architecture)
+          <div class="row">
+            <select id="tr-model"></select>
+            <button id="tr-model-rescan" class="icon" title="Rescan the modelset/ folder for new or edited model files">↻</button>
+          </div>
+        </div>
+        <div id="tr-model-info" class="hint"></div>
+        <div class="grid2">
+          <label class="field">Held-out test split (%)<input id="tr-test" type="number" min="0" max="50" value="15"></label>
+          <label class="field" title="With automatic stopping on, this is the maximum">IK epochs (max)<input id="tr-epochs" type="number" min="1" value="60"></label>
+          <label class="field">Collision-net epochs<input id="tr-cepochs" type="number" min="1" value="15"></label>
+          <label class="field">Tracked cases (images)<input id="tr-cases" type="number" min="1" max="64" value="8"></label>
+          <label class="field">Render every N epochs<input id="tr-every" type="number" min="1" value="5"></label>
+          <label class="field">Live samples / s<input id="tr-hz" type="number" min="1" max="20" value="6"></label>
+        </div>
+        <div class="split-box" id="acc-box">
+          <div class="split-head"><span>Accuracy target &amp; automatic stop</span></div>
+          <label class="field" title="A prediction counts as accurate when its end-effector lands within this distance of the target pose. Used for every accuracy number of this run.">
+            Position tolerance (mm)<input id="tr-tol" type="number" min="1" max="5000" step="1" value="100"></label>
+          <label class="check"><input type="checkbox" id="es-on" checked> Stop training automatically when the target is met</label>
+          <div class="grid2" id="es-fields">
+            <label class="field">Rule
+              <select id="es-metric">
+                <option value="pct_within">≥ X % of samples within tolerance</option>
+                <option value="mean_error">Mean position error ≤ tolerance</option>
+              </select></label>
+            <label class="field" id="es-pct-wrap">X = target accuracy (%)<input id="es-pct" type="number" min="1" max="100" step="1" value="90"></label>
+            <label class="field">Measured on
+              <select id="es-split">
+                <option value="train">Training split</option>
+                <option value="val">Validation split (unseen)</option>
+              </select></label>
+            <label class="field">For at least (epochs in a row)<input id="es-patience" type="number" min="1" max="50" value="2"></label>
+          </div>
+          <div id="es-info" class="hint"></div>
+        </div>
+        <div class="row">
+          <button id="tr-btn" class="primary">Train</button>
+          <button id="stop-btn" class="danger" disabled>Stop</button>
+        </div>
+        <div>
+          <div class="progress-label"><span>Collision classifier</span><span id="tr-col-label">—</span></div>
+          <div class="progress aqua"><div id="tr-col-bar"></div></div>
+        </div>
+        <div>
+          <div class="progress-label"><span>IK network</span><span id="tr-ik-label">—</span></div>
+          <div class="progress"><div id="tr-ik-bar"></div></div>
+        </div>
+        <dl class="kv" id="tr-kv"></dl>
+        <div class="hint">The test split is removed first and never reaches <code>train_ik.main()</code>, which then splits the rest 85 / 15 into train / validation itself. Model, split, metrics and images are saved in <code>ui/workspace/library/runs/&lt;run&gt;/</code>.</div>
+      </div>
+    </details>
+
+    <details class="panel" open>
+      <summary><span class="step">4</span>Run Inference</summary>
+      <div class="panel-body">
+        <label class="field">Model (library run)<select id="inf-run"></select></label>
+        <label class="field">Target pose
+          <select id="inf-target">
+            <option value="test">Held-out test sample of this run</option>
+            <option value="dataset">Sample from a dataset</option>
+            <option value="jog">Current joint sliders (FK of the twin)</option>
+            <option value="custom">Custom position + orientation</option>
+          </select>
+        </label>
+        <div id="inf-t-test" class="row"><button id="inf-random-test">Pick random test sample</button><span id="inf-test-info" class="hint" style="flex:2"></span></div>
+        <div id="inf-t-dataset" class="grid2">
+          <label class="field">Dataset<select id="inf-ds"></select></label>
+          <label class="field">Sample index<input id="inf-ds-i" type="number" min="0" value="0"></label>
+        </div>
+        <div id="inf-t-custom">
+          <div class="grid3">
+            <label class="field">x (m)<input id="inf-x" type="number" step="0.01" value="0.3"></label>
+            <label class="field">y (m)<input id="inf-y" type="number" step="0.01" value="0.0"></label>
+            <label class="field">z (m)<input id="inf-z" type="number" step="0.01" value="0.3"></label>
+            <label class="field">roll (°)<input id="inf-r" type="number" step="5" value="180"></label>
+            <label class="field">pitch (°)<input id="inf-p" type="number" step="5" value="0"></label>
+            <label class="field">yaw (°)<input id="inf-yaw" type="number" step="5" value="0"></label>
+          </div>
+          <button id="inf-from-ee" style="margin-top:6px">Fill from current twin end-effector</button>
+        </div>
+        <div class="grid2">
+          <label class="field">Seed (network input)
+            <select id="inf-seed">
+              <option value="noisy">True joints + N(0, 0.3) – as in training</option>
+              <option value="truth">True joints (exact)</option>
+              <option value="jog">Current joint sliders</option>
+              <option value="zero">Zero pose</option>
+            </select>
+          </label>
+          <label class="field">Refine: DLS iterations<input id="inf-refine" type="number" min="0" max="200" value="0" title="0 = network only; >0 = hybrid (network warm start + PyBullet damped least squares, as in evaluate.py)"></label>
+        </div>
+        <div class="row">
+          <button id="inf-btn" class="primary">Run inference</button>
+          <button id="inf-batch" title="Runs 20 random held-out test samples of this run and logs each">×20 test samples</button>
+        </div>
+        <dl class="kv" id="inf-kv"></dl>
+        <div class="hint">Every inference is appended to the run's <code>inference_log.jsonl</code>; its accuracy is shown in Run details.</div>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ===================== CENTER: 3D + bottom ===================== -->
+  <section id="center">
+    <div id="viewport-wrap">
+      <div id="viewport"></div>
+      <div id="hud" class="overlay"><div class="title" id="hud-title">Loading…</div><div class="lines" id="hud-lines"></div></div>
+      <div id="view-tools" class="overlay">
+        <label class="check"><input type="checkbox" id="follow" checked> Follow live job</label>
+        <label class="check"><input type="checkbox" id="show-cloud" checked> Dataset cloud</label>
+        <label class="check"><input type="checkbox" id="show-ghost" checked> Prediction ghost</label>
+        <button id="fit-btn">Reset view</button>
+      </div>
+      <div id="legend" class="overlay">
+        <span><i style="background:#8fa3b8"></i>Robot (truth / current)</span>
+        <span><i style="background:var(--series-2);opacity:.6"></i>Network prediction (ghost)</span>
+        <span><i style="background:var(--series-3);opacity:.6"></i>Refined (DLS)</span>
+        <span><i style="background:#e34948;border-radius:50%"></i>Target EE frame</span>
+        <span><i style="background:var(--series-1);border-radius:50%"></i>EE positions: free</span>
+        <span><i style="background:#e66767;border-radius:50%"></i>colliding</span>
+        <span><i style="background:#ff3b3b"></i>Link in self-collision</span>
+      </div>
+      <div id="loading" class="overlay">Loading robot…</div>
+    </div>
+
+    <div id="bottom">
+      <div class="tabs">
+        <button class="tab active" data-tab="library-pane">Library</button>
+        <button class="tab" data-tab="details-pane">Run details</button>
+        <button class="tab" data-tab="gallery-pane">Training renders</button>
+        <button class="tab" data-tab="inflog-pane">Inference log</button>
+        <button class="tab" data-tab="log-pane">Log</button>
+        <div class="spacer"></div>
+        <label class="hint" style="margin-bottom:6px">Run</label>
+        <select id="run-select" title="Selected run (model)"></select>
+        <button id="expand-btn" class="icon" title="Enlarge / shrink this panel" style="margin-bottom:5px">⤢</button>
+      </div>
+      <div id="library-pane" class="tabpane active"></div>
+      <div id="details-pane" class="tabpane"></div>
+      <div id="gallery-pane" class="tabpane"><div id="gallery"></div></div>
+      <div id="inflog-pane" class="tabpane"></div>
+      <div id="log-pane" class="tabpane"><pre id="log"></pre></div>
+    </div>
+  </section>
+
+  <!-- ===================== RIGHT: monitor ===================== -->
+  <aside id="right">
+    <div class="section-title">System Monitor <small id="gpu-name"></small></div>
+    <div class="tiles">
+      <div class="tile"><div class="label">CPU</div><div class="value" id="t-cpu">—</div><div class="sub" id="t-cpu-sub"></div></div>
+      <div class="tile"><div class="label">RAM</div><div class="value" id="t-ram">—</div><div class="sub" id="t-ram-sub"></div></div>
+      <div class="tile"><div class="label">GPU utilisation</div><div class="value" id="t-gpu">—</div><div class="sub" id="t-gpu-sub"></div></div>
+      <div class="tile"><div class="label">GPU memory</div><div class="value" id="t-vram">—</div><div class="sub" id="t-vram-sub"></div></div>
+      <div class="tile"><div class="label">GPU temp / power</div><div class="value" id="t-temp">—</div><div class="sub" id="t-power"></div></div>
+      <div class="tile"><div class="label">Job process</div><div class="value" id="t-job">—</div><div class="sub" id="t-job-sub"></div></div>
+    </div>
+    <div class="chart"><div class="ctitle"><span>CPU utilisation (%)</span></div><canvas id="c-cpu"></canvas></div>
+    <div class="ctitle" style="padding:0 14px;font-size:12px;color:var(--text-secondary)">Per-core load</div>
+    <div id="cores"></div>
+    <div class="chart"><div class="ctitle"><span>GPU utilisation (%)</span></div><canvas id="c-gpu"></canvas></div>
+    <div class="chart"><div class="ctitle"><span>GPU memory used (GB)</span></div><canvas id="c-vram"></canvas></div>
+    <div class="divider"></div>
+    <div class="section-title">Live Training <small id="tr-device"></small></div>
+    <div class="chart">
+      <div class="ctitle"><span>IK loss (MSE, sin/cos)</span>
+        <span class="legend"><span><i style="background:var(--series-1)"></i>train</span><span><i style="background:var(--series-2)"></i>validation</span></span></div>
+      <canvas id="c-loss"></canvas>
+    </div>
+    <div class="chart">
+      <div class="ctitle"><span>IK accuracy: EE within <b class="thr-label">50 mm</b> (%)</span>
+        <span class="legend"><span><i style="background:var(--series-1)"></i>train</span><span><i style="background:var(--series-2)"></i>validation</span></span></div>
+      <canvas id="c-ikacc"></canvas>
+    </div>
+    <div class="chart">
+      <div class="ctitle"><span>Collision classifier accuracy (%)</span>
+        <span class="legend"><span><i style="background:var(--series-1)"></i>train</span><span><i style="background:var(--series-2)"></i>validation</span></span></div>
+      <canvas id="c-acc"></canvas>
+    </div>
+    <div class="chart"><div class="ctitle"><span>Live sample EE position error (mm)</span></div><canvas id="c-err"></canvas></div>
+  </aside>
+</main>
+
+<div id="lightbox">
+  <div class="lb-inner">
+    <div class="lb-head">
+      <button id="lb-prev" class="icon" title="Previous case">◀</button>
+      <div class="t" id="lb-title"></div>
+      <button id="lb-3d">Show in 3D</button>
+      <a id="lb-open" target="_blank"><button>Open image</button></a>
+      <button id="lb-next" class="icon" title="Next case">▶</button>
+      <button id="lb-close" class="icon" title="Close">✕</button>
+    </div>
+    <img id="lb-img" alt="">
+    <div class="row"><span class="hint" style="flex:0 0 auto">Epoch</span><input id="lb-slider" type="range" min="0" max="0" value="0"><span id="lb-epoch" class="hint" style="flex:0 0 90px;text-align:right"></span></div>
+    <table class="lb-table" id="lb-table"></table>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="toast"></div>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

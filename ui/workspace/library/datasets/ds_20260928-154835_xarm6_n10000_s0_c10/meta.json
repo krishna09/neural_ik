@@ -1,0 +1,22 @@
+{
+ "id": "ds_20260928-154835_xarm6_n10000_s0_c10",
+ "robot": "xarm6",
+ "n": 10000,
+ "seed": 0,
+ "source": "ui",
+ "split": {
+  "mode": "custom",
+  "collision_pct_requested": 10.0,
+  "pool_n": 12177,
+  "pool_colliding": 1949,
+  "note": "9000 collision-free + 1000 colliding samples drawn (seeded) from a pool of 12177 produced by generate(robot, 12177, seed=0)"
+ },
+ "status": "ready",
+ "created": 1790590715.2662132,
+ "seed_source": "generate button",
+ "dof": 6,
+ "n_colliding": 1000,
+ "file": "library/datasets/ds_20260928-154835_xarm6_n10000_s0_c10/data/xarm6_ik_dataset.npz",
+ "sha256": "da77700b23b29dc1f38a453fbe5f029f95c66ec0c31bc4bbc6af92a20162202e",
+ "secs": 1.26
+}

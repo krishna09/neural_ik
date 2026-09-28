@@ -1,0 +1,18 @@
+{
+ "id": "ds_20260928-163059_xarm6_n200000_s0",
+ "robot": "xarm6",
+ "n": 200000,
+ "seed": 0,
+ "source": "ui",
+ "split": {
+  "mode": "natural"
+ },
+ "status": "ready",
+ "created": 1790593259.4817598,
+ "seed_source": "generate button",
+ "dof": 6,
+ "n_colliding": 32392,
+ "file": "library/datasets/ds_20260928-163059_xarm6_n200000_s0/data/xarm6_ik_dataset.npz",
+ "sha256": "6274af17af629c81b820d3a6a91f9925f26df6eccaac41d26cabe1dcf4106fd7",
+ "secs": 25.21
+}

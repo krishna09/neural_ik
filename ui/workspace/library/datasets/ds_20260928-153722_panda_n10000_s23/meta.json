@@ -1,0 +1,15 @@
+{
+ "id": "ds_20260928-153722_panda_n10000_s23",
+ "robot": "panda",
+ "n": 10000,
+ "seed": 23,
+ "source": "ui",
+ "status": "ready",
+ "created": 1790590042.6088338,
+ "seed_source": "generate button",
+ "dof": 7,
+ "n_colliding": 10000,
+ "file": "library/datasets/ds_20260928-153722_panda_n10000_s23/data/panda_ik_dataset.npz",
+ "sha256": "558d5e8922b3acd67d2962de8d393029185641c9835c1709db9b5ceab4753cf9",
+ "secs": 2.03
+}

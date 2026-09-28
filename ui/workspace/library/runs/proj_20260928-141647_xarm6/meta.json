@@ -1,0 +1,426 @@
+{
+ "id": "proj_20260928-141647_xarm6",
+ "kind": "project-import",
+ "robot": "xarm6",
+ "dataset_id": "ds_20260928-152858_xarm6_n20000_s0",
+ "status": "done",
+ "created": 1790585207.9313695,
+ "params": {
+  "epochs": 60
+ },
+ "epochs": [
+  {
+   "phase": "ik",
+   "epoch": 1,
+   "epochs": 60,
+   "val_mse": 0.25219244658946993
+  },
+  {
+   "phase": "ik",
+   "epoch": 2,
+   "epochs": 60,
+   "val_mse": 0.20551123917102815
+  },
+  {
+   "phase": "ik",
+   "epoch": 3,
+   "epochs": 60,
+   "val_mse": 0.1692941278219223
+  },
+  {
+   "phase": "ik",
+   "epoch": 4,
+   "epochs": 60,
+   "val_mse": 0.1161240890622139
+  },
+  {
+   "phase": "ik",
+   "epoch": 5,
+   "epochs": 60,
+   "val_mse": 0.08018280565738678
+  },
+  {
+   "phase": "ik",
+   "epoch": 6,
+   "epochs": 60,
+   "val_mse": 0.06610389500856399
+  },
+  {
+   "phase": "ik",
+   "epoch": 7,
+   "epochs": 60,
+   "val_mse": 0.06000774949789047
+  },
+  {
+   "phase": "ik",
+   "epoch": 8,
+   "epochs": 60,
+   "val_mse": 0.057868294417858124
+  },
+  {
+   "phase": "ik",
+   "epoch": 9,
+   "epochs": 60,
+   "val_mse": 0.05172936022281647
+  },
+  {
+   "phase": "ik",
+   "epoch": 10,
+   "epochs": 60,
+   "val_mse": 0.0508155882358551
+  },
+  {
+   "phase": "ik",
+   "epoch": 11,
+   "epochs": 60,
+   "val_mse": 0.04709654971957207
+  },
+  {
+   "phase": "ik",
+   "epoch": 12,
+   "epochs": 60,
+   "val_mse": 0.047744784504175186
+  },
+  {
+   "phase": "ik",
+   "epoch": 13,
+   "epochs": 60,
+   "val_mse": 0.04563167914748192
+  },
+  {
+   "phase": "ik",
+   "epoch": 14,
+   "epochs": 60,
+   "val_mse": 0.0445905476808548
+  },
+  {
+   "phase": "ik",
+   "epoch": 15,
+   "epochs": 60,
+   "val_mse": 0.04448568671941757
+  },
+  {
+   "phase": "ik",
+   "epoch": 16,
+   "epochs": 60,
+   "val_mse": 0.04305369257926941
+  },
+  {
+   "phase": "ik",
+   "epoch": 17,
+   "epochs": 60,
+   "val_mse": 0.04283124282956123
+  },
+  {
+   "phase": "ik",
+   "epoch": 18,
+   "epochs": 60,
+   "val_mse": 0.042027649283409116
+  },
+  {
+   "phase": "ik",
+   "epoch": 19,
+   "epochs": 60,
+   "val_mse": 0.04164570793509483
+  },
+  {
+   "phase": "ik",
+   "epoch": 20,
+   "epochs": 60,
+   "val_mse": 0.0414946548640728
+  },
+  {
+   "phase": "ik",
+   "epoch": 21,
+   "epochs": 60,
+   "val_mse": 0.04169891551136971
+  },
+  {
+   "phase": "ik",
+   "epoch": 22,
+   "epochs": 60,
+   "val_mse": 0.04074114188551903
+  },
+  {
+   "phase": "ik",
+   "epoch": 23,
+   "epochs": 60,
+   "val_mse": 0.039997362345457074
+  },
+  {
+   "phase": "ik",
+   "epoch": 24,
+   "epochs": 60,
+   "val_mse": 0.039417809993028644
+  },
+  {
+   "phase": "ik",
+   "epoch": 25,
+   "epochs": 60,
+   "val_mse": 0.041084029525518415
+  },
+  {
+   "phase": "ik",
+   "epoch": 26,
+   "epochs": 60,
+   "val_mse": 0.038986345380544664
+  },
+  {
+   "phase": "ik",
+   "epoch": 27,
+   "epochs": 60,
+   "val_mse": 0.0393683061003685
+  },
+  {
+   "phase": "ik",
+   "epoch": 28,
+   "epochs": 60,
+   "val_mse": 0.04029997065663338
+  },
+  {
+   "phase": "ik",
+   "epoch": 29,
+   "epochs": 60,
+   "val_mse": 0.03738365918397903
+  },
+  {
+   "phase": "ik",
+   "epoch": 30,
+   "epochs": 60,
+   "val_mse": 0.03865359872579575
+  },
+  {
+   "phase": "ik",
+   "epoch": 31,
+   "epochs": 60,
+   "val_mse": 0.03755462691187859
+  },
+  {
+   "phase": "ik",
+   "epoch": 32,
+   "epochs": 60,
+   "val_mse": 0.03831861987709999
+  },
+  {
+   "phase": "ik",
+   "epoch": 33,
+   "epochs": 60,
+   "val_mse": 0.03713627606630325
+  },
+  {
+   "phase": "ik",
+   "epoch": 34,
+   "epochs": 60,
+   "val_mse": 0.038036642223596574
+  },
+  {
+   "phase": "ik",
+   "epoch": 35,
+   "epochs": 60,
+   "val_mse": 0.037449737638235094
+  },
+  {
+   "phase": "ik",
+   "epoch": 36,
+   "epochs": 60,
+   "val_mse": 0.03732474073767662
+  },
+  {
+   "phase": "ik",
+   "epoch": 37,
+   "epochs": 60,
+   "val_mse": 0.03821255639195442
+  },
+  {
+   "phase": "ik",
+   "epoch": 38,
+   "epochs": 60,
+   "val_mse": 0.03730513826012612
+  },
+  {
+   "phase": "ik",
+   "epoch": 39,
+   "epochs": 60,
+   "val_mse": 0.036721158772706985
+  },
+  {
+   "phase": "ik",
+   "epoch": 40,
+   "epochs": 60,
+   "val_mse": 0.03642530813813209
+  },
+  {
+   "phase": "ik",
+   "epoch": 41,
+   "epochs": 60,
+   "val_mse": 0.03591783344745636
+  },
+  {
+   "phase": "ik",
+   "epoch": 42,
+   "epochs": 60,
+   "val_mse": 0.037747699022293094
+  },
+  {
+   "phase": "ik",
+   "epoch": 43,
+   "epochs": 60,
+   "val_mse": 0.036599300801754
+  },
+  {
+   "phase": "ik",
+   "epoch": 44,
+   "epochs": 60,
+   "val_mse": 0.036920062452554706
+  },
+  {
+   "phase": "ik",
+   "epoch": 45,
+   "epochs": 60,
+   "val_mse": 0.03555613309144974
+  },
+  {
+   "phase": "ik",
+   "epoch": 46,
+   "epochs": 60,
+   "val_mse": 0.035546009242534635
+  },
+  {
+   "phase": "ik",
+   "epoch": 47,
+   "epochs": 60,
+   "val_mse": 0.03468918278813362
+  },
+  {
+   "phase": "ik",
+   "epoch": 48,
+   "epochs": 60,
+   "val_mse": 0.03559787943959236
+  },
+  {
+   "phase": "ik",
+   "epoch": 49,
+   "epochs": 60,
+   "val_mse": 0.03540161699056625
+  },
+  {
+   "phase": "ik",
+   "epoch": 50,
+   "epochs": 60,
+   "val_mse": 0.03512963131070137
+  },
+  {
+   "phase": "ik",
+   "epoch": 51,
+   "epochs": 60,
+   "val_mse": 0.0346016600728035
+  },
+  {
+   "phase": "ik",
+   "epoch": 52,
+   "epochs": 60,
+   "val_mse": 0.035921886563301086
+  },
+  {
+   "phase": "ik",
+   "epoch": 53,
+   "epochs": 60,
+   "val_mse": 0.03460829704999924
+  },
+  {
+   "phase": "ik",
+   "epoch": 54,
+   "epochs": 60,
+   "val_mse": 0.03455038666725159
+  },
+  {
+   "phase": "ik",
+   "epoch": 55,
+   "epochs": 60,
+   "val_mse": 0.03592010214924812
+  },
+  {
+   "phase": "ik",
+   "epoch": 56,
+   "epochs": 60,
+   "val_mse": 0.034010931849479675
+  },
+  {
+   "phase": "ik",
+   "epoch": 57,
+   "epochs": 60,
+   "val_mse": 0.03533666431903839
+  },
+  {
+   "phase": "ik",
+   "epoch": 58,
+   "epochs": 60,
+   "val_mse": 0.034548918902873996
+  },
+  {
+   "phase": "ik",
+   "epoch": 59,
+   "epochs": 60,
+   "val_mse": 0.034365637600421904
+  },
+  {
+   "phase": "ik",
+   "epoch": 60,
+   "epochs": 60,
+   "val_mse": 0.034149698168039325
+  }
+ ],
+ "metrics": {},
+ "collision_metrics": {},
+ "evaluations": [
+  {
+   "id": "eval_20260928-153408",
+   "dataset_id": "ds_20260928-152903_xarm6_n5000_s1",
+   "created": 1790589848.336593,
+   "n_rows": 5000,
+   "overlap": {
+    "level": "independent",
+    "note": "independent: generator seed 1 vs training seed 0"
+   },
+   "seed_mode": "true joints + N(0, 0.3)",
+   "summary": {
+    "n": 4202,
+    "pos_mean_mm": 108.06257088182551,
+    "pos_median_mm": 96.49105571092386,
+    "pos_p90_mm": 187.13537722466089,
+    "orn_mean_deg": 30.301245706097625,
+    "orn_median_deg": 28.02143037876545,
+    "acc_pos": {
+     "10": 0.14278914802475012,
+     "25": 2.260828177058544,
+     "50": 13.779152784388387,
+     "100": 52.64159923845788
+    },
+    "acc_orn": {
+     "5": 0.6425511661113755,
+     "15": 12.779628748215135,
+     "30": 55.30699666825322
+    },
+    "joint_mae_deg": 11.239982604980469,
+    "self_collision_pct": 0.047596382674916705,
+    "limit_violation_pct": 32.579723940980486
+   },
+   "collision": {
+    "n": 5000,
+    "n_colliding": 798,
+    "accuracy": 97.72,
+    "precision": 95.47872340425532,
+    "recall": 89.97493734335839
+   },
+   "secs": 0.32
+  }
+ ],
+ "models": {
+  "ik": "models/xarm6_ik_net.pt",
+  "collision": "models/xarm6_collision_net.pt",
+  "history": "models/xarm6_history.json"
+ },
+ "models_sha": "abff9db25677abd9ef8eb057f06b0db94c1b70648238ec57dec5ba4b96bf45f4",
+ "manifest": null,
+ "notes": "Copied from the project's models/ folder (trained with train_ik.py on the command line on 28 Sep, on data/ generated with seed 0, n=20000). That data/ file was later removed from the project, so the training dataset was regenerated in the library with the same settings; its content fingerprint (bec7da8e...) matches the original file exactly. No held-out test split and no recorded train/validation split - evaluate on a dataset generated with a different seed for an independent test."
+}

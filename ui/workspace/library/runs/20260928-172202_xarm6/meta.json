@@ -1,0 +1,194 @@
+{
+ "id": "20260928-172202_xarm6",
+ "kind": "ui-train",
+ "robot": "xarm6",
+ "dataset_id": "ds_20260928-163059_xarm6_n200000_s0",
+ "status": "failed",
+ "created": 1790596322.3815744,
+ "params": {
+  "epochs": 120,
+  "collision_epochs": 15,
+  "cases": 8,
+  "render_every": 5,
+  "test_frac": 0.15,
+  "split_seed": 2024,
+  "pos_tol_mm": 30.0,
+  "early_stop": {
+   "metric": "pct_within",
+   "target_pct": 95.0,
+   "split": "train",
+   "patience": 2
+  },
+  "acc_subset": 2000
+ },
+ "split": {
+  "n_dataset": 200000,
+  "n_test": 30000,
+  "n_test_free": 25090,
+  "n_given_to_train_ik": 170000,
+  "n_ik_rows": 142518
+ },
+ "epochs": [
+  {
+   "phase": "collision",
+   "epoch": 1,
+   "epochs": 15,
+   "secs": 3.566,
+   "train_loss": 0.12271082420396594,
+   "train_acc": 97.63667820069205,
+   "val_acc": 97.74901960784314,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 2,
+   "epochs": 15,
+   "secs": 2.816,
+   "train_loss": 0.050505990366888256,
+   "train_acc": 98.01453287197232,
+   "val_acc": 98.11764705882354,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 3,
+   "epochs": 15,
+   "secs": 2.554,
+   "train_loss": 0.04649979973591007,
+   "train_acc": 97.81245674740484,
+   "val_acc": 97.83137254901962,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 4,
+   "epochs": 15,
+   "secs": 2.51,
+   "train_loss": 0.045489284854415245,
+   "train_acc": 97.9038062283737,
+   "val_acc": 97.91372549019609,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 5,
+   "epochs": 15,
+   "secs": 2.558,
+   "train_loss": 0.044691823587744636,
+   "train_acc": 98.06851211072664,
+   "val_acc": 98.15294117647059,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 6,
+   "epochs": 15,
+   "secs": 2.507,
+   "train_loss": 0.04353203226408336,
+   "train_acc": 97.90519031141869,
+   "val_acc": 97.84313725490196,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 7,
+   "epochs": 15,
+   "secs": 2.476,
+   "train_loss": 0.043340714242869775,
+   "train_acc": 98.04359861591696,
+   "val_acc": 98.05098039215686,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 8,
+   "epochs": 15,
+   "secs": 2.456,
+   "train_loss": 0.042582086701176865,
+   "train_acc": 98.0159169550173,
+   "val_acc": 97.92549019607844,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 9,
+   "epochs": 15,
+   "secs": 2.48,
+   "train_loss": 0.04224998715902324,
+   "train_acc": 98.22975778546713,
+   "val_acc": 98.23137254901961,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 10,
+   "epochs": 15,
+   "secs": 2.689,
+   "train_loss": 0.0415718145652023,
+   "train_acc": 98.26920415224913,
+   "val_acc": 98.25490196078431,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 11,
+   "epochs": 15,
+   "secs": 2.603,
+   "train_loss": 0.04047185742930896,
+   "train_acc": 98.21245674740484,
+   "val_acc": 98.21176470588236,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 12,
+   "epochs": 15,
+   "secs": 2.565,
+   "train_loss": 0.0405371055122366,
+   "train_acc": 98.27058823529413,
+   "val_acc": 98.30588235294118,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 13,
+   "epochs": 15,
+   "secs": 2.589,
+   "train_loss": 0.04038761950765563,
+   "train_acc": 98.30726643598616,
+   "val_acc": 98.3529411764706,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 14,
+   "epochs": 15,
+   "secs": 2.765,
+   "train_loss": 0.03924164155135508,
+   "train_acc": 98.26643598615917,
+   "val_acc": 98.25490196078431,
+   "gpu_mem_mb": 21.6
+  },
+  {
+   "phase": "collision",
+   "epoch": 15,
+   "epochs": 15,
+   "secs": 2.567,
+   "train_loss": 0.038790288493366895,
+   "train_acc": 98.30242214532872,
+   "val_acc": 98.31372549019608,
+   "gpu_mem_mb": 21.6
+  }
+ ],
+ "metrics": {},
+ "collision_metrics": {},
+ "evaluations": [],
+ "models": {
+  "ik": "models/xarm6_ik_net.pt",
+  "collision": "models/xarm6_collision_net.pt",
+  "history": "models/xarm6_history.json"
+ },
+ "manifest": "renders/manifest.json",
+ "device": "cuda",
+ "gpu": "NVIDIA RTX A6000"
+}

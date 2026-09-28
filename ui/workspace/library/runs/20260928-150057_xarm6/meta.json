@@ -1,0 +1,426 @@
+{
+ "id": "20260928-150057_xarm6",
+ "kind": "legacy-ui",
+ "robot": "xarm6",
+ "dataset_id": "ds_20260928-145809_xarm6_n15000_s0",
+ "status": "done",
+ "created": 1790587932.7081778,
+ "params": {
+  "epochs": 60
+ },
+ "epochs": [
+  {
+   "phase": "ik",
+   "epoch": 1,
+   "epochs": 60,
+   "val_mse": 0.2750276029109955
+  },
+  {
+   "phase": "ik",
+   "epoch": 2,
+   "epochs": 60,
+   "val_mse": 0.23045174777507782
+  },
+  {
+   "phase": "ik",
+   "epoch": 3,
+   "epochs": 60,
+   "val_mse": 0.19928499683737755
+  },
+  {
+   "phase": "ik",
+   "epoch": 4,
+   "epochs": 60,
+   "val_mse": 0.17295212671160698
+  },
+  {
+   "phase": "ik",
+   "epoch": 5,
+   "epochs": 60,
+   "val_mse": 0.1438692919909954
+  },
+  {
+   "phase": "ik",
+   "epoch": 6,
+   "epochs": 60,
+   "val_mse": 0.11056180112063885
+  },
+  {
+   "phase": "ik",
+   "epoch": 7,
+   "epochs": 60,
+   "val_mse": 0.08697923272848129
+  },
+  {
+   "phase": "ik",
+   "epoch": 8,
+   "epochs": 60,
+   "val_mse": 0.07213684916496277
+  },
+  {
+   "phase": "ik",
+   "epoch": 9,
+   "epochs": 60,
+   "val_mse": 0.06485288217663765
+  },
+  {
+   "phase": "ik",
+   "epoch": 10,
+   "epochs": 60,
+   "val_mse": 0.062336515635252
+  },
+  {
+   "phase": "ik",
+   "epoch": 11,
+   "epochs": 60,
+   "val_mse": 0.05757823120802641
+  },
+  {
+   "phase": "ik",
+   "epoch": 12,
+   "epochs": 60,
+   "val_mse": 0.0527837248519063
+  },
+  {
+   "phase": "ik",
+   "epoch": 13,
+   "epochs": 60,
+   "val_mse": 0.050723505206406116
+  },
+  {
+   "phase": "ik",
+   "epoch": 14,
+   "epochs": 60,
+   "val_mse": 0.04993127752095461
+  },
+  {
+   "phase": "ik",
+   "epoch": 15,
+   "epochs": 60,
+   "val_mse": 0.0479522617533803
+  },
+  {
+   "phase": "ik",
+   "epoch": 16,
+   "epochs": 60,
+   "val_mse": 0.04722580313682556
+  },
+  {
+   "phase": "ik",
+   "epoch": 17,
+   "epochs": 60,
+   "val_mse": 0.045690146274864674
+  },
+  {
+   "phase": "ik",
+   "epoch": 18,
+   "epochs": 60,
+   "val_mse": 0.04606173187494278
+  },
+  {
+   "phase": "ik",
+   "epoch": 19,
+   "epochs": 60,
+   "val_mse": 0.04577734973281622
+  },
+  {
+   "phase": "ik",
+   "epoch": 20,
+   "epochs": 60,
+   "val_mse": 0.04470601584762335
+  },
+  {
+   "phase": "ik",
+   "epoch": 21,
+   "epochs": 60,
+   "val_mse": 0.04462479427456856
+  },
+  {
+   "phase": "ik",
+   "epoch": 22,
+   "epochs": 60,
+   "val_mse": 0.0425250269472599
+  },
+  {
+   "phase": "ik",
+   "epoch": 23,
+   "epochs": 60,
+   "val_mse": 0.04267815034836531
+  },
+  {
+   "phase": "ik",
+   "epoch": 24,
+   "epochs": 60,
+   "val_mse": 0.042672536335885525
+  },
+  {
+   "phase": "ik",
+   "epoch": 25,
+   "epochs": 60,
+   "val_mse": 0.0426075616851449
+  },
+  {
+   "phase": "ik",
+   "epoch": 26,
+   "epochs": 60,
+   "val_mse": 0.0417770454660058
+  },
+  {
+   "phase": "ik",
+   "epoch": 27,
+   "epochs": 60,
+   "val_mse": 0.041494215838611126
+  },
+  {
+   "phase": "ik",
+   "epoch": 28,
+   "epochs": 60,
+   "val_mse": 0.04125463031232357
+  },
+  {
+   "phase": "ik",
+   "epoch": 29,
+   "epochs": 60,
+   "val_mse": 0.04179979208856821
+  },
+  {
+   "phase": "ik",
+   "epoch": 30,
+   "epochs": 60,
+   "val_mse": 0.04051610268652439
+  },
+  {
+   "phase": "ik",
+   "epoch": 31,
+   "epochs": 60,
+   "val_mse": 0.04112904239445925
+  },
+  {
+   "phase": "ik",
+   "epoch": 32,
+   "epochs": 60,
+   "val_mse": 0.039758455008268356
+  },
+  {
+   "phase": "ik",
+   "epoch": 33,
+   "epochs": 60,
+   "val_mse": 0.03970175329595804
+  },
+  {
+   "phase": "ik",
+   "epoch": 34,
+   "epochs": 60,
+   "val_mse": 0.04016472399234772
+  },
+  {
+   "phase": "ik",
+   "epoch": 35,
+   "epochs": 60,
+   "val_mse": 0.03932765405625105
+  },
+  {
+   "phase": "ik",
+   "epoch": 36,
+   "epochs": 60,
+   "val_mse": 0.04126621037721634
+  },
+  {
+   "phase": "ik",
+   "epoch": 37,
+   "epochs": 60,
+   "val_mse": 0.03878857009112835
+  },
+  {
+   "phase": "ik",
+   "epoch": 38,
+   "epochs": 60,
+   "val_mse": 0.03896184265613556
+  },
+  {
+   "phase": "ik",
+   "epoch": 39,
+   "epochs": 60,
+   "val_mse": 0.03899959288537502
+  },
+  {
+   "phase": "ik",
+   "epoch": 40,
+   "epochs": 60,
+   "val_mse": 0.040225488133728504
+  },
+  {
+   "phase": "ik",
+   "epoch": 41,
+   "epochs": 60,
+   "val_mse": 0.038722677156329155
+  },
+  {
+   "phase": "ik",
+   "epoch": 42,
+   "epochs": 60,
+   "val_mse": 0.03795070853084326
+  },
+  {
+   "phase": "ik",
+   "epoch": 43,
+   "epochs": 60,
+   "val_mse": 0.03814355283975601
+  },
+  {
+   "phase": "ik",
+   "epoch": 44,
+   "epochs": 60,
+   "val_mse": 0.03822779096662998
+  },
+  {
+   "phase": "ik",
+   "epoch": 45,
+   "epochs": 60,
+   "val_mse": 0.038655709475278854
+  },
+  {
+   "phase": "ik",
+   "epoch": 46,
+   "epochs": 60,
+   "val_mse": 0.03901467099785805
+  },
+  {
+   "phase": "ik",
+   "epoch": 47,
+   "epochs": 60,
+   "val_mse": 0.03864216431975365
+  },
+  {
+   "phase": "ik",
+   "epoch": 48,
+   "epochs": 60,
+   "val_mse": 0.037868253886699677
+  },
+  {
+   "phase": "ik",
+   "epoch": 49,
+   "epochs": 60,
+   "val_mse": 0.037814813666045666
+  },
+  {
+   "phase": "ik",
+   "epoch": 50,
+   "epochs": 60,
+   "val_mse": 0.037747692316770554
+  },
+  {
+   "phase": "ik",
+   "epoch": 51,
+   "epochs": 60,
+   "val_mse": 0.03728758171200752
+  },
+  {
+   "phase": "ik",
+   "epoch": 52,
+   "epochs": 60,
+   "val_mse": 0.03731957543641329
+  },
+  {
+   "phase": "ik",
+   "epoch": 53,
+   "epochs": 60,
+   "val_mse": 0.037652927450835705
+  },
+  {
+   "phase": "ik",
+   "epoch": 54,
+   "epochs": 60,
+   "val_mse": 0.03727960493415594
+  },
+  {
+   "phase": "ik",
+   "epoch": 55,
+   "epochs": 60,
+   "val_mse": 0.03741877805441618
+  },
+  {
+   "phase": "ik",
+   "epoch": 56,
+   "epochs": 60,
+   "val_mse": 0.03843394573777914
+  },
+  {
+   "phase": "ik",
+   "epoch": 57,
+   "epochs": 60,
+   "val_mse": 0.03715352155268192
+  },
+  {
+   "phase": "ik",
+   "epoch": 58,
+   "epochs": 60,
+   "val_mse": 0.037955114617943764
+  },
+  {
+   "phase": "ik",
+   "epoch": 59,
+   "epochs": 60,
+   "val_mse": 0.036529223434627056
+  },
+  {
+   "phase": "ik",
+   "epoch": 60,
+   "epochs": 60,
+   "val_mse": 0.03704556170850992
+  }
+ ],
+ "metrics": {},
+ "collision_metrics": {},
+ "evaluations": [
+  {
+   "id": "eval_20260928-153235",
+   "dataset_id": "ds_20260928-152903_xarm6_n5000_s1",
+   "created": 1790589755.6897645,
+   "n_rows": 5000,
+   "overlap": {
+    "level": "independent",
+    "note": "independent: generator seed 1 vs training seed 0"
+   },
+   "seed_mode": "true joints + N(0, 0.3)",
+   "summary": {
+    "n": 4202,
+    "pos_mean_mm": 122.41930323890676,
+    "pos_median_mm": 108.44452290662832,
+    "pos_p90_mm": 220.125867685046,
+    "orn_mean_deg": 31.609060979372057,
+    "orn_median_deg": 29.6773353247457,
+    "acc_pos": {
+     "10": 0.14278914802475012,
+     "25": 1.951451689671585,
+     "50": 11.99428843407901,
+     "100": 44.78819609709662
+    },
+    "acc_orn": {
+     "5": 0.666349357448834,
+     "15": 12.70823417420276,
+     "30": 51.09471680152309
+    },
+    "joint_mae_deg": 11.70607852935791,
+    "self_collision_pct": 0.023798191337458353,
+    "limit_violation_pct": 32.77010947168015
+   },
+   "collision": {
+    "n": 5000,
+    "n_colliding": 798,
+    "accuracy": 97.5,
+    "precision": 91.80124223602485,
+    "recall": 92.60651629072682
+   },
+   "secs": 0.25
+  }
+ ],
+ "models": {
+  "ik": "models/xarm6_ik_net.pt",
+  "collision": "models/xarm6_collision_net.pt",
+  "history": "models/xarm6_history.json"
+ },
+ "models_sha": "0e86b0a55cd1dd37f240185385bca6c91b1fb4b1fc41ea3d7c543a66b17aab76",
+ "manifest": "renders/manifest.json",
+ "notes": "Trained by the UI before the library existed, on the whole dataset: no held-out test split, and train_ik's train/validation split was not recorded. Use 'Evaluate on dataset' with a dataset generated from a different seed for an independent test."
+}
