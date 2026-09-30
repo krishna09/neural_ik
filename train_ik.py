@@ -111,7 +111,7 @@ def load_dataset(robot_name, seed_noise_std=0.3, rng=None):
 class IKNet(nn.Module):
     """Pose (+ seed config) -> joint angles, as [sin, cos] pairs."""
 
-    def __init__(self, dof, hidden=256*3):
+    def __init__(self, dof, hidden=256):
         super().__init__()
         in_dim = 3 + 4 + dof  # position + quaternion + seed
         out_dim = 2 * dof

@@ -47,6 +47,7 @@ import torch.utils.data as tud  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 import ik_metrics as M  # noqa: E402
+import collision_filter  # noqa: E402
 import model_registry as MR  # noqa: E402
 import train_ik as ti  # noqa: E402
 from libio import read_json, rel, write_json  # noqa: E402
@@ -83,6 +84,10 @@ ACC_SUBSET = int(P.get("acc_subset", 2000))
 BATCH = 256  # train_ik's DataLoader batch size
 # User-set accuracy tolerance: an end-effector counts as accurate when it lands
 # within POS_TOL mm of the target. Reported everywhere next to the presets.
+REFINE_TEST = bool(P.get("refine_test", True))      # also report network + numerical refinement on the test split
+REFINE_TEST_MAX = int(P.get("refine_test_max", 20000))
+REFINE_EPOCH = bool(P.get("refine_epoch", True))    # per-epoch accuracy of network + LM refinement too
+REFINE_EPOCH_N = int(P.get("refine_epoch_n", 1000))  # targets per split and epoch
 POS_TOL = float(P.get("pos_tol_mm", 50))
 TOL_KEY = M.tkey(POS_TOL)
 # Early stopping: {"metric": "pct_within" | "mean_error", "target_pct": 90,
@@ -90,6 +95,7 @@ TOL_KEY = M.tkey(POS_TOL)
 ES = P.get("early_stop") or None
 
 RUN_DIR = os.getcwd()
+os.environ["IK_ROBOT"] = ROBOT      # robot-aware models (FK inside the network) read this
 
 # Which network to train: train_ik.IKNet ("base") or a modelset/*.py model.
 # The source is copied into the run folder first and the class is taken from
@@ -195,8 +201,10 @@ class Renderer:
     def __init__(self):
         connect(gui=False)
         p.loadURDF("plane.urdf")
-        self.truth, self.cfg, _ = load_robot(ROBOT)
+        self.truth, self.cfg, limits = load_robot(ROBOT)
         self.pred, _, _ = load_robot(ROBOT)
+        for body in (self.truth, self.pred):
+            collision_filter.apply(body, self.cfg, limits)   # ignore link pairs that touch by construction
         for body, rgba in ((self.truth, TRUTH_RGBA), (self.pred, PRED_RGBA)):
             for link in range(-1, p.getNumJoints(body)):
                 p.changeVisualShape(body, link, rgbaColor=rgba)
@@ -352,11 +360,16 @@ def epoch_accuracy():
             "val": np.sort(rng.choice(ik_va, min(ACC_SUBSET, len(ik_va)), replace=False)),
         }
     r = renderer()
-    out = {}
+    out, out_ref = {}, {}
     for name, idx in S.acc_idx.items():
-        out[name], _ = M.evaluate_ik(S.ik_model, r.truth, r.cfg, LIMITS, _X[idx], Q_TRUE_X[idx],
-                                     collision=False, extra_pos_mm=(POS_TOL,))
-    return out
+        out[name], per = M.evaluate_ik(S.ik_model, r.truth, r.cfg, LIMITS, _X[idx], Q_TRUE_X[idx],
+                                       collision=False, extra_pos_mm=(POS_TOL,))
+        if REFINE_EPOCH:
+            # the full system: network + LM refinement (refine/lm_solver.py), checked with PyBullet
+            k = min(REFINE_EPOCH_N, len(idx))
+            out_ref[name], _ = M.refine_ik(ROBOT, r.truth, r.cfg, LIMITS, _X[idx[:k]], per["q_pred"][:k],
+                                           extra_pos_mm=(POS_TOL,), q_true=Q_TRUE_X[idx[:k]])
+    return out, out_ref
 
 
 def end_epoch():
@@ -373,7 +386,9 @@ def end_epoch():
     else:
         ev["val_mse"] = float(np.mean(S.val)) if S.val else None
         ev["collision_penalty"] = float(np.mean(S.pen)) if S.pen else None
-        ev["acc"] = epoch_accuracy()
+        ev["acc"], acc_ref = epoch_accuracy()
+        if acc_ref:
+            ev["acc_refined"] = acc_ref
         ev["pos_tol_mm"] = POS_TOL
         if ES:
             ev["early_stop"] = check_early_stop(ev["acc"])
@@ -588,10 +603,15 @@ def final_evaluation():
     t0 = time.time()
 
     tol = (POS_TOL,)
-    metrics = {
-        "train": M.evaluate_ik(S.ik_model, body, cfg, LIMITS, _X[ik_tr], Q_TRUE_X[ik_tr], extra_pos_mm=tol)[0],
-        "val": M.evaluate_ik(S.ik_model, body, cfg, LIMITS, _X[ik_va], Q_TRUE_X[ik_va], extra_pos_mm=tol)[0],
-    }
+    metrics = {}
+    for name, rows in (("train", ik_tr), ("val", ik_va)):
+        metrics[name], per_s = M.evaluate_ik(S.ik_model, body, cfg, LIMITS, _X[rows], Q_TRUE_X[rows], extra_pos_mm=tol)
+        if REFINE_TEST:
+            # training accuracy of the full system (network + LM) on up to REFINE_TEST_MAX rows
+            sub = np.sort(np.random.default_rng(SPLIT_SEED + 5).choice(len(rows), min(REFINE_TEST_MAX, len(rows)),
+                                                                        replace=False))
+            metrics[name + "_refined"], _ = M.refine_ik(ROBOT, body, cfg, LIMITS, _X[rows][sub], per_s["q_pred"][sub],
+                                                        extra_pos_mm=tol, q_true=Q_TRUE_X[rows][sub])
     labels_all = FULL["collision_labels"]
     col = {
         "train": M.collision_metrics(S.col_model, JOINTS[col_tr], LABELS[col_tr]),
@@ -603,7 +623,25 @@ def final_evaluation():
         Xt = M.make_inputs(FULL["positions"][test_free], FULL["orientations"][test_free], seeds)
         metrics["test"], per = M.evaluate_ik(S.ik_model, body, cfg, LIMITS, Xt, FULL["joints"][test_free], extra_pos_mm=tol)
         col["test"] = M.collision_metrics(S.col_model, FULL["joints"][TEST_IDX], labels_all[TEST_IDX])
-        np.savez("test_results.npz", index=test_free, seed=seeds, **{k: v for k, v in per.items()})
+        extra = {}
+        if REFINE_TEST:
+            # network + numerical refinement (refine/lm_solver.py) on (up to REFINE_TEST_MAX) test rows:
+            # warm start (the seeds above) and cold start (zero-pose seed), each checked with PyBullet
+            sub = np.sort(np.random.default_rng(SPLIT_SEED + 3).choice(
+                len(test_free), min(REFINE_TEST_MAX, len(test_free)), replace=False))
+            q_sub = FULL["joints"][test_free][sub]
+            print(f"[refine] network + LM refinement on {len(sub)} held-out test targets (warm and cold start)",
+                  flush=True)
+            metrics["test_refined"], pr = M.refine_ik(ROBOT, body, cfg, LIMITS, Xt[sub], per["q_pred"][sub],
+                                                      extra_pos_mm=tol, q_true=q_sub)
+            Xc = M.make_inputs(FULL["positions"][test_free][sub], FULL["orientations"][test_free][sub],
+                               np.zeros_like(q_sub, dtype=np.float32))
+            metrics["test_cold"], pc = M.evaluate_ik(S.ik_model, body, cfg, LIMITS, Xc, q_sub, extra_pos_mm=tol)
+            metrics["test_cold_refined"], prc = M.refine_ik(ROBOT, body, cfg, LIMITS, Xc, pc["q_pred"],
+                                                            extra_pos_mm=tol, q_true=q_sub)
+            extra = {"refined_subset": sub, **{k: v for k, v in pr.items()},
+                     **{k + "_cold": v for k, v in prc.items()}, "q_pred_cold": pc["q_pred"]}
+        np.savez("test_results.npz", index=test_free, seed=seeds, **{k: v for k, v in per.items()}, **extra)
 
     np.savez("split.npz", test=TEST_IDX, ik_train=X_ORIG[ik_tr], ik_val=X_ORIG[ik_va],
              col_train=SUB_IDX[col_tr], col_val=SUB_IDX[col_va])

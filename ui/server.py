@@ -21,6 +21,7 @@ copies the project's data/ and models/ files into the library.
 
 import argparse
 import glob
+import hashlib
 import json
 import mimetypes
 import os
@@ -50,6 +51,8 @@ import numpy as np  # noqa: E402
 import psutil  # noqa: E402
 import pybullet as p  # noqa: E402
 
+import collision_filter  # noqa: E402
+import generator_registry as GR  # noqa: E402
 import ik_metrics as M  # noqa: E402
 import model_registry as MR  # noqa: E402
 from libio import read_json, rel, sha256_file, write_json  # noqa: E402
@@ -115,8 +118,7 @@ STATE_LOCK = threading.Lock()
 
 PB_LOCK = threading.RLock()
 _BODIES = {}
-MESH_FILES = []          # id -> absolute path (only files PyBullet itself reported)
-_MESH_IDS = {}
+MESH_FILES = {}          # key -> absolute path (only files PyBullet itself reported)
 
 
 def pb_init():
@@ -129,16 +131,20 @@ def get_robot(name):
         raise ValueError(f"unknown robot {name}")
     with PB_LOCK:
         if name not in _BODIES:
-            _BODIES[name] = load_robot(name)
+            body, cfg, limits = load_robot(name)
+            collision_filter.apply(body, cfg, limits)     # ignore link pairs that touch by construction
+            _BODIES[name] = (body, cfg, limits)
         return _BODIES[name]
 
 
 def _register_mesh(path):
+    """Stable, content-addressed mesh URL key. The browser caches meshes, so a
+    key must always mean the same file - numbering meshes in load order made a
+    cached URL point at another robot's mesh after a server restart."""
     path = os.path.abspath(path)
-    if path not in _MESH_IDS:
-        _MESH_IDS[path] = len(MESH_FILES)
-        MESH_FILES.append(path)
-    return _MESH_IDS[path]
+    key = hashlib.sha1(f"{path}|{os.path.getmtime(path)}".encode()).hexdigest()[:20]
+    MESH_FILES[key] = path
+    return key
 
 
 def robot_model(name):
@@ -336,7 +342,11 @@ def inference_summary(recs, tol=None):
     refined = [r for r in recs if r.get("refined")]
     if refined:
         out["refined"] = M.summarize([r["refined"]["pos_err_mm"] / 1000 for r in refined],
-                                     [r["refined"]["orn_err_deg"] for r in refined], extra_pos_mm=extra)
+                                     [r["refined"]["orn_err_deg"] for r in refined],
+                                     colliding=[bool(r["refined"].get("self_collision")) for r in refined],
+                                     limit_viol=[bool(r["refined"].get("limit_violation")) for r in refined],
+                                     extra_pos_mm=extra)
+        out["refined"]["methods"] = sorted({r["refined"].get("method", "dls") for r in refined})
     return out
 
 
@@ -644,8 +654,55 @@ def infer(body):
     }
     out = {"record": rec, "fk_pred": f_pred}
 
+    method = body.get("refine_method") or ("dls" if int(body.get("refine_iters", 0)) > 0 else "none")
     iters = int(body.get("refine_iters", 0))
-    if iters > 0:
+    if method == "lm":
+        # network + numerical refinement (refine/lm_solver.py, CPU so it never competes with a
+        # training job for the GPU): LM from the network output and the seed, random restarts
+        # if still outside tolerance, then PyBullet checks the result
+        from refine import lm_solver
+        st = _refine_settings({"iters": iters or 30, "restarts": int(body.get("refine_restarts", 16)),
+                               "use_seed": True, "tol_mm": float(body.get("refine_tol_mm", 1.0)),
+                               "tol_deg": float(body.get("refine_tol_deg", 1.0))})
+        chain = M.chain_for(robot, "cpu")
+        t0 = time.perf_counter()
+        with torch.no_grad():
+            res = lm_solver.solve(chain, np.array([pos]), np.array([orn]), [q_pred[None], np.array([seed])],
+                                  ref=np.array([seed]), iters=st["iters"], restarts=st["restarts"],
+                                  tol_mm=st["tol_mm"], tol_deg=st["tol_deg"])
+        q_ref = res["q"][0]
+        f_ref = fk(robot, q_ref)
+        pe = float(np.linalg.norm(np.array(f_ref["ee_pos"]) - np.array(pos)) * 1000)
+        oe = quat_angle_deg(f_ref["ee_orn"], orn)
+        lim_bad = bool(M.limit_violations(q_ref[None], limits)[0])
+        w = int(res["winner"][0])
+        if st["restarts"] and (f_ref["colliding"] or lim_bad or pe > st["tol_mm"] or oe > st["tol_deg"]):
+            # another IK branch from fresh random starts: first one PyBullet confirms collision-free
+            with torch.no_grad():
+                cand = lm_solver.random_candidates(chain, np.array([pos]), np.array([orn]),
+                                                   n_random=max(32, st["restarts"]), iters=max(50, st["iters"]))
+            score = cand["pos_err_mm"][:, 0] / st["tol_mm"] + cand["orn_err_deg"][:, 0] / st["tol_deg"]
+            for k in np.argsort(score):
+                if cand["pos_err_mm"][k, 0] > st["tol_mm"] or cand["orn_err_deg"][k, 0] > st["tol_deg"]:
+                    break
+                qc = cand["q"][k, 0]
+                fc = fk(robot, qc)
+                pc = float(np.linalg.norm(np.array(fc["ee_pos"]) - np.array(pos)) * 1000)
+                oc = quat_angle_deg(fc["ee_orn"], orn)
+                if not fc["colliding"] and not M.limit_violations(qc[None], limits)[0] and pc <= st["tol_mm"] and oc <= st["tol_deg"]:
+                    q_ref, f_ref, pe, oe, lim_bad, w = qc, fc, pc, oc, False, M.RETRY
+                    break
+        t_ref = (time.perf_counter() - t0) * 1000
+        rec["refined"] = {
+            "method": "lm", "iters": st["iters"], "restarts": st["restarts"], "q": r5(q_ref), "ms": t_ref,
+            "pos_err_mm": pe, "orn_err_deg": oe, "self_collision": bool(f_ref["colliding"]),
+            "limit_violation": lim_bad,
+            "winner": ("collision-free retry" if w == M.RETRY else ["network", "seed"][w] if w < 2 else f"random restart {w - 1}"),
+            "success": bool(pe <= st["tol_mm"] and oe <= st["tol_deg"] and not lim_bad and not f_ref["colliding"]),
+            "tol_mm": st["tol_mm"], "tol_deg": st["tol_deg"],
+        }
+        out["fk_refined"] = f_ref
+    elif method == "dls" and iters > 0:
         with PB_LOCK:
             b, cfg, _ = get_robot(robot)
             for idx, a in zip(cfg["joint_indices"], q_pred):
@@ -659,7 +716,7 @@ def infer(body):
             q_ref = np.array([sol[movable.index(j)] for j in cfg["joint_indices"]])
         f_ref = fk(robot, q_ref)
         rec["refined"] = {
-            "iters": iters, "q": r5(q_ref), "ms": t_ref,
+            "method": "dls", "iters": iters, "q": r5(q_ref), "ms": t_ref,
             "pos_err_mm": float(np.linalg.norm(np.array(f_ref["ee_pos"]) - np.array(pos)) * 1000),
             "orn_err_deg": quat_angle_deg(f_ref["ee_orn"], orn),
             "self_collision": bool(f_ref["colliding"]),
@@ -872,16 +929,40 @@ def job_generate(body):
     cp = None if cp in (None, "", "natural") else float(cp)   # None = natural split from generate()
     if cp is not None and not 0 <= cp <= 100:
         raise ValueError("collision percentage must be between 0 and 100")
+    gen_id = body.get("generator") or GR.BASE_ID
+    gen = next((g for g in GR.list_generators() if g["id"] == gen_id), None)
+    if gen is None:
+        raise ValueError(f"unknown generator {gen_id!r}")
+    if not gen["ok"]:
+        raise ValueError(f"generator {gen_id} cannot be used: {gen['error']}")
+    # generator options = generate()'s own keyword parameters (see generator_registry.describe)
+    given = body.get("gen_opts") or {}
+    known = {o["name"]: o for o in gen.get("options", [])}
+    unknown = sorted(set(given) - set(known))
+    if unknown:
+        raise ValueError(f"{gen['file']} has no option(s) {', '.join(unknown)}")
+    cast = {"bool": bool, "int": int, "float": float, "str": str}
+    gen_opts = {}
+    for name, v in given.items():
+        try:
+            gen_opts[name] = cast[known[name]["type"]](v)
+        except (TypeError, ValueError):
+            raise ValueError(f"generator option {name}: expected a {known[name]['type']} value") from None
+    ignore_pairs = bool(body.get("ignore_structural_pairs")) and bool(gen.get("supports_ignore_pairs"))
+    tag = f"_{gen['tag']}" if gen.get("tag") else ""
     with LIB_LOCK:
-        ds_id = _unique_dir(DS_DIR, f"ds_{stamp()}_{robot}_n{n}_s{seed}" + (f"_c{cp:g}" if cp is not None else ""))
+        ds_id = _unique_dir(DS_DIR, f"ds_{stamp()}_{robot}_n{n}_s{seed}" + (f"_c{cp:g}" if cp is not None else "") + tag)
         d = os.path.join(DS_DIR, ds_id)
         os.makedirs(d)
         mp = os.path.join(d, "meta.json")
         write_json(mp, {"id": ds_id, "robot": robot, "n": n, "seed": seed, "source": "ui",
                         "split": {"mode": "natural"} if cp is None else {"mode": "custom", "collision_pct_requested": cp},
+                        "generator": {"id": gen_id, "file": gen["file"]},
                         "status": "generating", "created": time.time()})
     start_job("generate", {"robot": robot, "n": n, "seed": seed, "delay_ms": float(body.get("delay_ms", 0)),
-                           "collision_pct": cp, "ds_id": ds_id, "workspace": WORKSPACE}, cwd=d, meta_path=mp)
+                           "collision_pct": cp, "generator": gen_id, "gen_opts": gen_opts,
+                           "ignore_structural_pairs": ignore_pairs, "ds_id": ds_id, "workspace": WORKSPACE},
+              cwd=d, meta_path=mp)
     return ds_id
 
 
@@ -905,7 +986,7 @@ def job_train(body):
         write_json(mp, {"id": run_id, "kind": "ui-train", "robot": robot, "dataset_id": ds["id"],
                         "status": "running", "created": time.time()})
     model_id = body.get("model_id") or MR.BASE_ID
-    entry = next((e for e in MR.list_models(ROBOTS[robot]["dof"]) if e["id"] == model_id), None)
+    entry = next((e for e in MR.list_models(ROBOTS[robot]["dof"], robot) if e["id"] == model_id), None)
     if entry is None:
         raise ValueError(f"unknown model {model_id!r} - put model files in {MR._rel(MR.MODELSET_DIR)}/")
     if not entry["ok"]:
@@ -941,10 +1022,28 @@ def job_evaluate(body):
     ds = ds_meta(body["dataset_id"])
     if ds.get("robot") != m["robot"]:
         raise ValueError(f"dataset is for {ds.get('robot')}, model is for {m['robot']}")
+    seed_mode = body.get("seed_mode") or "noisy"
+    if seed_mode not in M.SEED_MODES:
+        raise ValueError(f"seed mode must be one of {', '.join(M.SEED_MODES)}")
     params = {"run_id": run_id, "run_dir": run_dir(run_id), "robot": m["robot"], "dataset_id": ds["id"],
-              "dataset_file": ds["path_abs"], "workspace": WORKSPACE,
+              "dataset_file": ds["path_abs"], "workspace": WORKSPACE, "seed_mode": seed_mode,
+              "refine": _refine_settings(body.get("refine")),
               "max_samples": int(body.get("max_samples", 0)), "overlap": overlap_info(m, ds)}
     start_job("evaluate", params, cwd=run_dir(run_id))
+
+
+def _refine_settings(r):
+    """Validated refine/lm_solver settings from a request (None / false = network only)."""
+    if not r:
+        return None
+    r = dict(M.REFINE_DEFAULTS, **{k: v for k, v in r.items() if k in M.REFINE_DEFAULTS})
+    out = {"iters": int(r["iters"]), "restarts": int(r["restarts"]), "use_seed": bool(r["use_seed"]),
+           "tol_mm": float(r["tol_mm"]), "tol_deg": float(r["tol_deg"])}
+    if not 1 <= out["iters"] <= 500 or not 0 <= out["restarts"] <= 256:
+        raise ValueError("refinement: iterations must be 1-500 and random restarts 0-256")
+    if out["tol_mm"] <= 0 or out["tol_deg"] <= 0:
+        raise ValueError("refinement: tolerances must be positive")
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -1080,8 +1179,10 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(403, {"error": "forbidden"})
                 return self._file(target)
             if path.startswith("/mesh/"):
-                mid = int(path[len("/mesh/"):].split(".")[0])
-                return self._file(MESH_FILES[mid], cache=True)
+                key = path[len("/mesh/"):].split(".")[0]
+                if key not in MESH_FILES:
+                    return self._send(404, {"error": "unknown mesh"})
+                return self._file(MESH_FILES[key], cache=True)
             if path.startswith("/files/"):
                 relp = urllib.parse.unquote(path[len("/files/"):])
                 target = os.path.normpath(os.path.join(WORKSPACE, relp))
@@ -1096,11 +1197,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, robot_model(qs["robot"]))
             if path == "/api/library":
                 return self._send(200, library())
+            if path == "/api/generators":
+                return self._send(200, {"folder": MR._rel(GR.DATAGEN_DIR), "generators": GR.list_generators()})
             if path == "/api/models":
                 robot = qs.get("robot", "xarm6")
                 if robot not in ROBOTS:
                     raise ValueError(f"unknown robot {robot}")
-                return self._send(200, {"folder": MR._rel(MR.MODELSET_DIR), "models": MR.list_models(ROBOTS[robot]["dof"])})
+                return self._send(200, {"folder": MR._rel(MR.MODELSET_DIR), "models": MR.list_models(ROBOTS[robot]["dof"], robot)})
             if path == "/api/run":
                 return self._send(200, run_detail(qs["id"]))
             if path == "/api/dataset/sample":
@@ -1207,6 +1310,7 @@ def main():
         sys.exit(f"Port {args.port} is already in use (is Neural IK Studio already running?): {e}")
     migrate_legacy()
     os.makedirs(MR.MODELSET_DIR, exist_ok=True)
+    os.makedirs(GR.DATAGEN_DIR, exist_ok=True)
     pb_init()
     threading.Thread(target=stats_loop, daemon=True).start()
     srv.daemon_threads = True

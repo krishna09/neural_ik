@@ -13,15 +13,17 @@ const $ = (id) => document.getElementById(id);
 const DEG = 180 / Math.PI;
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const COLORS = {
-  s1: css('--series-1'), s2: css('--series-2'), s3: css('--series-3'),
+  s1: css('--series-1'), s2: css('--series-2'), s3: css('--series-3'), s4: '#d4a72c',
   grid: '#2c2c29', axis: css('--text-muted'), text: css('--text-secondary'),
 };
-const POS_T = ['10', '25', '50', '100'];
+const ACC_SERIES = [{ name: 'train', color: COLORS.s1 }, { name: 'validation', color: COLORS.s2 },
+  { name: 'train + LM', color: COLORS.s3 }, { name: 'validation + LM', color: COLORS.s4 }];
+const POS_T = ['1', '5', '10', '25', '50', '100'];
 // Tolerance -> key used in the stored accuracy dicts ("100", "12.5"); matches ik_metrics.tkey.
 const tolKey = (v) => String(+v);
 // The accuracy tolerance a run was trained with (older runs: 50 mm).
 const runTol = (r) => tolKey((r && r.params && r.params.pos_tol_mm) || 50);
-const ORN_T = ['5', '15', '30'];
+const ORN_T = ['1', '5', '15', '30'];
 
 const state = {
   robot: null, model: null, dof: 0,
@@ -304,6 +306,83 @@ async function selectRobot(name) {
   fillSelects();
   await loadDataset($('ds-src').value || null);
   await refreshModels();
+  showGeneratorInfo();
+}
+
+// ---- dataset generators: generate_dataset.py (base) + datagen/*.py ----
+const genIdOf = (d) => (d && d.generator && d.generator.id) || 'base';
+const genShort = (id) => (id === 'base' ? 'base' : id.replace(/^datagen\//, '').replace(/\.py$/, ''));
+
+async function refreshGenerators() {
+  const res = await api('/api/generators');
+  state.generators = res.generators;
+  const sel = $('gen-generator');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  for (const g of res.generators) {
+    const o = document.createElement('option');
+    o.value = g.id;
+    o.disabled = !g.ok;
+    o.textContent = g.ok ? (g.base ? 'Base – generate_dataset.py' : `${g.file}`) : `⚠ ${g.file} – not loadable`;
+    sel.appendChild(o);
+  }
+  if (res.generators.some((g) => g.id === prev && g.ok)) sel.value = prev;
+  showGeneratorInfo();
+}
+
+function showGeneratorInfo() {
+  const g = (state.generators || []).find((x) => x.id === $('gen-generator').value);
+  if (!g) return;
+  const info = $('gen-generator-info');
+  const broken = (state.generators || []).filter((x) => !x.ok);
+  let html = esc(g.description || '');
+  if (g.base && state.robot === 'panda') {
+    html += '<br>⚠ On the Panda the base generator labels every sample colliding (the hand is bolted to link 7 and the closed fingers touch) – use the clean generator.';
+  }
+  if (g.adapted) html += `${html ? '<br>' : ''}Runs <code>${esc(g.file)}</code> as it is; the live view follows its own FK and collision-check calls.`;
+  html += broken.map((b) => `<br>⚠ <code>${esc(b.file)}</code>: ${esc(b.error)}`).join('');
+  info.innerHTML = html;
+  info.classList.toggle('warn', (g.base && state.robot === 'panda') || broken.length > 0);
+  renderGenOptions(g);
+  updateSplitUI();
+}
+$('gen-generator').onchange = showGeneratorInfo;
+
+// generate()'s own keyword parameters (bool / int / float / str defaults) as fields
+function renderGenOptions(g) {
+  const box = $('gen-opts');
+  const opts = g.options || [];
+  box.hidden = !opts.length && !g.supports_ignore_pairs;
+  if (box.hidden) { box.innerHTML = ''; return; }
+  const field = (o) => {
+    const tip = esc(o.help || `${o.name} (default ${o.default})`);
+    if (o.type === 'bool') return `<label class="check" title="${tip}"><input type="checkbox" data-opt="${esc(o.name)}" data-type="bool" ${o.default ? 'checked' : ''}> ${esc(o.name)}</label>`;
+    const num = o.type !== 'str';
+    return `<label class="field" title="${tip}">${esc(o.name)}<input data-opt="${esc(o.name)}" data-type="${o.type}" type="${num ? 'number' : 'text'}" ${num ? `step="${o.type === 'int' ? 1 : 'any'}"` : ''} value="${esc(String(o.default))}"></label>`;
+  };
+  const panda = state.robot === 'panda';
+  box.innerHTML = `<div class="split-head"><span>Generator options</span><span class="hint">defaults from generate()</span></div>
+    ${opts.length ? `<div class="grid2">${opts.map(field).join('')}</div>` : ''}
+    ${g.supports_ignore_pairs ? `<label class="check" title="Hands the generator the link pairs that touch in every pose (rigidly attached, one joint apart, or touching in ≥95% of random poses) through its cfg['self_collision_ignore_pairs'] setting. The generator file is not changed.">
+      <input type="checkbox" id="gen-ignore-pairs" ${panda ? 'checked' : ''}> Skip link pairs that touch by construction (clean collision matrix)</label>
+      <div class="hint${panda ? '' : ' muted'}">${panda ? 'Needed for the Panda: its hand and closed fingers always touch, so without this every sample is rejected.' : 'Optional for this robot.'}</div>` : ''}`;
+}
+
+function genOptValues() {
+  const out = {};
+  document.querySelectorAll('#gen-opts [data-opt]').forEach((el) => {
+    const t = el.dataset.type;
+    out[el.dataset.opt] = t === 'bool' ? el.checked : t === 'str' ? el.value : +el.value;
+  });
+  return out;
+}
+
+function genReportRows(r) {
+  if (!r || r.collision_rate_base_rule == null) return '';
+  const ignored = (r.disabled_touching_pairs || []).map((x) => `${x.a} ↔ ${x.b}`).join(', ');
+  return `<dt>Structural pairs ignored</dt><dd>${r.disabled_pair_count}</dd>
+    <dt>Colliding, base rule → clean</dt><dd>${pct(100 * r.collision_rate_base_rule)} → ${pct(100 * r.collision_rate_clean)}</dd>
+    ${ignored ? `<dt>Touching pairs ignored</dt><dd title="${esc(ignored)}">${esc(ignored.length > 60 ? ignored.slice(0, 60) + '…' : ignored)}</dd>` : ''}`;
 }
 
 // ---- network architectures: train_ik.py base model + modelset/*.py ----
@@ -320,14 +399,23 @@ async function refreshModels() {
   const sel = $('tr-model');
   const prev = sel.value;
   sel.innerHTML = '';
+  const groups = new Map();                      // one <optgroup> per modelset/ folder
   for (const e of res.models) {
+    const label = e.base ? 'Base' : `modelset/${e.group ? e.group + '/' : ''}`;
+    if (!groups.has(label)) {
+      const g = document.createElement('optgroup');
+      g.label = label;
+      sel.appendChild(g);
+      groups.set(label, g);
+    }
+    const name = e.file.split('/').pop();
     const o = document.createElement('option');
     o.value = e.id;
     o.disabled = !e.ok;
     o.textContent = e.ok
-      ? `${e.base ? 'Base model – train_ik.py' : e.file} · ${e.cls} · ${fmtParams(e.params)}`
-      : `⚠ ${e.file} – not loadable`;
-    sel.appendChild(o);
+      ? `${e.base ? 'Base model – train_ik.py' : name} · ${e.cls} · ${fmtParams(e.params)}`
+      : `⚠ ${name} – not loadable`;
+    groups.get(label).appendChild(o);
   }
   if (res.models.some((e) => e.id === prev && e.ok)) sel.value = prev;
   showModelInfo();
@@ -398,8 +486,9 @@ function dsLabel(d) {
   if (d.id.startsWith('project:')) return `project data/ (live, read-only) · ${d.robot}`;
   const st = d.status !== 'ready' ? ` · ${d.status}` : '';
   const imported = !/^ui\b/i.test(d.source || '');
+  const gen = genIdOf(d) !== 'base' ? ` · ${genShort(genIdOf(d))}` : '';
   const coll = d.n && d.n_colliding != null ? ` · ${((100 * d.n_colliding) / d.n).toFixed(0)}% coll.` : '';
-  return `${when(d.created)} · n=${(d.n ?? 0).toLocaleString()} · seed ${d.seed ?? '?'}${coll}${imported ? ' · imported' : ''}${st}`;
+  return `${when(d.created)} · n=${(d.n ?? 0).toLocaleString()} · seed ${d.seed ?? '?'}${coll}${gen}${imported ? ' · imported' : ''}${st}`;
 }
 
 function runLabel(r) {
@@ -447,7 +536,7 @@ function renderLibrary() {
       <td><span class="id">${esc(d.id)}</span></td><td>${d.robot}</td>
       <td class="num">${(d.n ?? 0).toLocaleString()}</td><td class="num">${d.seed ?? '?'}</td>
       <td class="num">${d.n ? pct((100 * (d.n_colliding ?? 0)) / d.n) : '—'}</td>
-      <td>${esc(d.source)}${d.split && d.split.mode === 'custom' ? `<span class="tag" title="${esc(d.split.note || '')}">custom split</span>` : ''}${d.status !== 'ready' ? `<span class="tag warn">${d.status}</span>` : ''}</td>
+      <td>${esc(d.source)}${genIdOf(d) !== 'base' ? `<span class="tag good" title="${esc((d.generator && d.generator.file) || '')}">${esc(genShort(genIdOf(d)))} generator</span>` : ''}${d.split && d.split.mode === 'custom' ? `<span class="tag" title="${esc(d.split.note || '')}">custom split</span>` : ''}${d.status !== 'ready' ? `<span class="tag warn">${d.status}</span>` : ''}</td>
       <td>${when(d.created)}</td>
       <td>${d.used_by.length ? d.used_by.map((r) => `<span class="id">${r}</span>`).join(', ') : '<span class="hint">—</span>'}</td>
       <td><button data-act="ds-browse" data-id="${d.id}">Browse</button> <button data-act="ds-train" data-id="${d.id}" ${d.status !== 'ready' ? 'disabled' : ''}>Train on</button></td></tr>`).join('');
@@ -552,12 +641,15 @@ function refreshDetailSoon() {
   detailTimer = setTimeout(() => state.selRun && selectRun(state.selRun), 400);
 }
 
-function accRow(label, s, colAcc, extra = '') {
-  if (!s || !s.n) return `<tr><td>${label}${extra}</td><td colspan="10" class="muted">not available</td></tr>`;
+function accRow(label, s, colAcc, extra = '', cls = '') {
+  if (!s || !s.n) return `<tr class="${cls}"><td>${label}${extra}</td><td colspan="11" class="muted">not available</td></tr>`;
   const pa = s.acc_pos && s.acc_pos[state.posT], oa = s.acc_orn && s.acc_orn[state.ornT];
-  return `<tr><td>${label}${extra}</td><td class="num">${s.n.toLocaleString()}</td>
+  const su = s.success && s.success[`${state.posT}|${state.ornT}`];
+  const suTip = s.success ? `≤ ${state.posT} mm AND ≤ ${state.ornT}°${(s.success_checks || []).length ? ' AND ' + s.success_checks.map((c) => (c === 'collision' ? 'collision-free' : 'within joint limits')).join(' AND ') : ''}` : 'not stored for this row (older result)';
+  return `<tr class="${cls}"><td>${label}${extra}</td><td class="num">${s.n.toLocaleString()}</td>
     <td class="num">${pct(pa)}<span class="accbar"><span style="width:${pa ?? 0}%"></span></span></td>
     <td class="num">${pct(oa)}</td>
+    <td class="num strong" title="${esc(suTip)}">${pct(su)}</td>
     <td class="num">${fmt(s.pos_mean_mm, 1)}</td><td class="num">${fmt(s.pos_median_mm, 1)}</td>
     <td class="num">${fmt(s.orn_mean_deg, 1)}</td><td class="num">${fmt(s.joint_mae_deg, 1)}</td>
     <td class="num">${pct(s.self_collision_pct)}</td><td class="num">${pct(s.limit_violation_pct)}</td>
@@ -565,6 +657,62 @@ function accRow(label, s, colAcc, extra = '') {
 }
 
 const OVERLAP_TAG = { independent: 'good', 'same-seed': 'bad', 'training-data': 'bad', unknown: 'warn' };
+
+// errors that can be far below 0.1 (refined solutions): 0.00012 -> "1.2e-4"
+const fmtSmall = (v) => (v == null ? '—' : Math.abs(v) >= 0.01 || v === 0 ? fmt(v, 3) : v.toExponential(1));
+
+// Inference result card: the final answer first (network + refinement), the network alone below it
+function finalCard(rec) {
+  const r = rec.refined;
+  const net = `${fmt(rec.pos_err_mm, 1)} mm · ${fmt(rec.orn_err_deg, 1)}° · ${fmt(rec.latency_ms, 2)} ms`;
+  if (!r) {
+    return `<div class="final-card"><div class="fc-title"><span>Network alone (no refinement)</span></div>
+      <div class="fc-main">${net}</div>
+      <div class="fc-sub">Choose Refinement "LM solver" to finish this answer to &lt; 1 mm / &lt; 1°.</div></div>`;
+  }
+  const lm = r.method === 'lm';
+  const ok = lm ? r.success : (r.pos_err_mm <= 1 && r.orn_err_deg <= 1 && !r.self_collision && !r.limit_violation);
+  const goal = `< ${r.tol_mm ?? 1} mm & < ${r.tol_deg ?? 1}°`;
+  return `<div class="final-card ${ok ? 'ok' : 'bad'}">
+    <div class="fc-title"><span>Final answer · network + ${lm ? 'LM' : 'DLS'} refinement</span><span class="fc-verdict">${ok ? `✓ meets ${goal}` : `✗ misses ${goal}`}</span></div>
+    <div class="fc-main">${fmtSmall(r.pos_err_mm)} mm <span class="fc-unit">position error</span> · ${fmtSmall(r.orn_err_deg)}° <span class="fc-unit">orientation error</span></div>
+    <div class="fc-sub">${fmt(r.ms, 1)} ms · ${r.iters} iterations${lm && r.winner ? ` · solver started from the ${esc(r.winner)}` : ''} · self-collision ${r.self_collision ? '<b>yes</b>' : 'no'} · joint limits ${r.limit_violation ? '<b>violated</b>' : 'ok'}</div>
+    <div class="fc-net">Network alone (the solver's starting point): ${net}</div></div>`;
+}
+
+// settings of a refined summary, shown as a hover tooltip on an ⓘ mark
+function refineText(r) {
+  if (!r) return '';
+  const w = r.won_by;
+  const won = w ? `\nSolution came from: network ${fmt(w.network, 1)}%, seed ${fmt(w.seed, 1)}%, random restart ${fmt(w['random restart'], 1)}%${w['collision-free retry'] ? `, collision-free retry ${fmt(w['collision-free retry'], 1)}%` : ''}` : '';
+  const tip = `Network answer finished by Levenberg-Marquardt (refine/lm_solver.py): ${r.iters} iterations, up to ${r.restarts} random restarts, then re-checked with PyBullet.\n${fmt(r.ms_per_target, 3)} ms per target on ${r.device || '?'} (incl. the PyBullet check).${won}`;
+  return ` <span class="hint" title="${esc(tip)}" style="cursor:help">ⓘ</span>`;
+}
+
+// "Goal" box: strict success at < 1 mm and < 1 deg, network alone vs network + LM refinement
+function goalBox(m) {
+  const met = m.metrics || {};
+  const G = '1|1';
+  const val = (s) => (s && s.success && s.success[G] != null ? s.success[G] : null);
+  const seedName = { noisy: 'warm start (seed near the answer)', zero: 'cold start (zero-pose seed)', random: 'cold start (random seed)' };
+  const rows = [
+    ['Training split', met.train, met.train_refined],
+    ['Validation split', met.val, met.val_refined],
+    ['Held-out test split – warm start (seed near the answer)', met.test, met.test_refined],
+    ['Held-out test split – cold start (zero-pose seed)', met.test_cold, met.test_cold_refined],
+    ...(m.evaluations || []).map((e) => [`Independent dataset <span class="id">${esc(e.dataset_id)}</span> – ${seedName[e.seed_mode_id] || 'warm start'}`, e.summary, e.summary_refined]),
+  ].filter(([, a, b]) => val(a) != null || val(b) != null);
+  if (!rows.some(([, , b]) => b)) return '';
+  const cell = (s) => {
+    const v = val(s);
+    if (v == null) return '<td class="big muted">—</td><td class="num muted"></td>';
+    return `<td class="big ${v >= 99.95 ? 'ok' : ''}">${v >= 99.995 ? '100' : v.toFixed(2)}%</td><td class="num">${s.n.toLocaleString()} targets</td>`;
+  };
+  return `<div class="goal-box"><h4>Goal: position error &lt; 1 mm AND orientation error &lt; 1° (and within joint limits, collision-free) – % of targets that meet it</h4>
+    <table><thead><tr><th>Where</th><th class="r">Network alone</th><th></th><th class="r">Network + LM refinement</th><th></th></tr></thead>
+    <tbody>${rows.map(([name, a, b]) => `<tr><td>${name}</td>${cell(a)}${cell(b)}</tr>`).join('')}</tbody></table>
+    <div class="hint">The network gives a starting point; the LM solver (refine/lm_solver.py) finishes it. Every refined answer is re-checked with PyBullet forward kinematics.</div></div>`;
+}
 
 function overlapPreview(run, dsId) {
   const ds = dsById(dsId);
@@ -605,9 +753,11 @@ function renderDetails() {
   const met = m.metrics || {};
   const sp = m.split || {};
   const inf = (m.inference && m.inference.summary) || { n: 0 };
+  const seedTag = (id) => (id && id !== 'noisy' ? ` <span class="tag warn" title="no prior knowledge of the answer">cold start: ${esc(id)} seed</span>` : '');
   const evRows = (m.evaluations || []).map((e) => accRow(
-    `Evaluation on <span class="id">${esc(e.dataset_id)}</span>`, e.summary, e.collision && e.collision.accuracy,
-    ` <span class="tag ${OVERLAP_TAG[e.overlap?.level] || 'warn'}" title="${esc(e.overlap?.note)}">${esc(e.overlap?.level || '?')}</span>`)).join('');
+    `Evaluation on <span class="id">${esc(e.dataset_id)}</span> – network`, e.summary, e.collision && e.collision.accuracy,
+    ` <span class="tag ${OVERLAP_TAG[e.overlap?.level] || 'warn'}" title="${esc(e.overlap?.note)}">${esc(e.overlap?.level || '?')}</span>${seedTag(e.seed_mode_id)}`)
+    + (e.summary_refined ? accRow('↳ network + LM refinement', e.summary_refined, null, refineText(e.summary_refined.refine), 'refined') : '')).join('');
   const dsOpts = state.lib.datasets.filter((d) => d.robot === m.robot && d.status === 'ready')
     .map((d) => `<option value="${d.id}">${esc(dsLabel(d))}</option>`).join('');
   const hasSplit = !!met.test;
@@ -621,29 +771,42 @@ function renderDetails() {
     </div>
     ${m.notes ? `<div class="notes">${esc(m.notes)}</div>` : ''}
     ${esSummary(m)}
+    ${goalBox(m)}
     <div class="hint">Trained on <span class="id">${esc(m.dataset_id || 'unknown')}</span>${sp.n_dataset ? ` · ${sp.n_dataset.toLocaleString()} samples → test ${sp.n_test.toLocaleString()} held out (${sp.n_test_free.toLocaleString()} collision-free) · train_ik got ${sp.n_given_to_train_ik.toLocaleString()} → IK train ${(sp.n_ik_train ?? 0).toLocaleString()} / validation ${(sp.n_ik_val ?? 0).toLocaleString()}` : ''}
       ${m.inference_speed ? ` · network inference ${fmt(m.inference_speed.single_ms, 3)} ms per call on ${esc(m.inference_speed.device)}` : ''}</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Where</th><th class="num">n</th><th class="num">Pos. acc ≤${state.posT} mm</th><th class="num">Orn. acc ≤${state.ornT}°</th>
+      <th class="num" title="Strict success: position AND orientation within tolerance AND inside the joint limits AND collision-free">Success ≤${state.posT} mm & ≤${state.ornT}°</th>
       <th class="num">Mean pos err (mm)</th><th class="num">Median (mm)</th><th class="num">Mean orn err (°)</th><th class="num">Joint MAE (°)</th>
       <th class="num">Pred. self-collision</th><th class="num">Joint-limit viol.</th><th class="num">Collision-net acc</th></tr></thead><tbody>
-      <tr class="group"><td colspan="11">Training (train_ik's own splits)</td></tr>
-      ${accRow('Train split', met.train, cm.train && cm.train.accuracy)}
-      ${accRow('Validation split', met.val, cm.val && cm.val.accuracy)}
-      <tr class="group"><td colspan="11">Testing</td></tr>
-      ${hasSplit ? accRow('Held-out test split', met.test, cm.test && cm.test.accuracy, ' <span class="tag good">never seen in training</span>') : '<tr><td colspan="11" class="muted">No held-out test split for this run – use "Evaluate on dataset" below with a dataset generated from a different seed.</td></tr>'}
+      <tr class="group"><td colspan="12">Training (train_ik's own splits)</td></tr>
+      ${accRow('Train split – network', met.train, cm.train && cm.train.accuracy)}
+      ${met.train_refined ? accRow('↳ network + LM refinement', met.train_refined, null, refineText(met.train_refined.refine), 'refined') : ''}
+      ${accRow('Validation split – network', met.val, cm.val && cm.val.accuracy)}
+      ${met.val_refined ? accRow('↳ network + LM refinement', met.val_refined, null, refineText(met.val_refined.refine), 'refined') : ''}
+      <tr class="group"><td colspan="12">Testing</td></tr>
+      ${hasSplit ? accRow('Held-out test split – network', met.test, cm.test && cm.test.accuracy, ' <span class="tag good">never seen in training</span>') : '<tr><td colspan="12" class="muted">No held-out test split for this run – use "Evaluate on dataset" below with a dataset generated from a different seed.</td></tr>'}
+      ${met.test_refined ? accRow('↳ network + LM refinement', met.test_refined, null, refineText(met.test_refined.refine), 'refined') : ''}
+      ${met.test_cold ? accRow('Held-out test, cold start (zero-pose seed) – network', met.test_cold, null, seedTag('zero')) : ''}
+      ${met.test_cold_refined ? accRow('↳ network + LM refinement', met.test_cold_refined, null, refineText(met.test_cold_refined.refine), 'refined') : ''}
       ${evRows}
-      <tr class="group"><td colspan="11">Inference (every call from panel 4, logged)</td></tr>
-      ${inf.n ? accRow(`Inference log – network output <span class="hint">(${fmt(inf.network.latency_ms_mean, 3)} ms avg)</span>`, inf.network, null) : '<tr><td colspan="11" class="muted">no inferences yet</td></tr>'}
-      ${inf.refined ? accRow('Inference log – after DLS refinement', inf.refined, null) : ''}
+      <tr class="group"><td colspan="12">Inference (every call from panel 4, logged)</td></tr>
+      ${inf.n ? accRow(`Inference log – network output <span class="hint">(${fmt(inf.network.latency_ms_mean, 3)} ms avg)</span>`, inf.network, null) : '<tr><td colspan="12" class="muted">no inferences yet</td></tr>'}
+      ${inf.refined ? accRow(`Inference log – after refinement (${esc((inf.refined.methods || ['dls']).map((x) => x.toUpperCase()).join(' / '))})`, inf.refined, null) : ''}
     </tbody></table></div>
+    <div class="hint">For &lt;1 mm / &lt;1° set Position tolerance 1 and Orientation 1. "↳ network + LM refinement" rows: the network's answer is finished by a numerical solver (refine/lm_solver.py) and then re-checked with PyBullet.</div>
     <div class="details-grid">
       <div class="box"><h4><span>Loss per epoch (MSE)</span><span class="legend"><span><i style="background:${COLORS.s1}"></i>train</span><span><i style="background:${COLORS.s2}"></i>validation</span></span></h4><canvas id="d-loss"></canvas></div>
-      <div class="box"><h4><span>IK accuracy per epoch (≤${state.posT} mm, %)</span><span class="legend"><span><i style="background:${COLORS.s1}"></i>train</span><span><i style="background:${COLORS.s2}"></i>validation</span></span></h4><canvas id="d-acc"></canvas></div>
+      <div class="box"><h4><span>IK accuracy per epoch (≤${state.posT} mm, %)</span><span class="legend"><span><i style="background:${COLORS.s1}"></i>train</span><span><i style="background:${COLORS.s2}"></i>validation</span>${(m.epochs || []).some((e) => e.acc_refined) ? `<span><i style="background:${COLORS.s3}"></i>train + LM</span><span><i style="background:${COLORS.s4}"></i>validation + LM</span>` : ''}</span></h4><canvas id="d-acc"></canvas></div>
       <div class="box"><h4><span>Collision-net accuracy per epoch (%)</span><span class="legend"><span><i style="background:${COLORS.s1}"></i>train</span><span><i style="background:${COLORS.s2}"></i>validation</span></span></h4><canvas id="d-col"></canvas></div>
     </div>
     <div class="box"><h4><span>Evaluate this model on a dataset (batch inference → test accuracy)</span></h4>
       <div class="toolbar">${m.has_models ? `<select id="ev-ds" style="width:auto;max-width:420px">${dsOpts}</select>
         <label class="hint">max samples <input id="ev-max" type="number" min="0" value="0" style="width:90px" title="0 = all"></label>
+        <label class="hint">seed <select id="ev-seed" class="inline-sel" title="The joint configuration given to the network next to the target pose">
+          <option value="noisy">true joints + N(0, 0.3) – warm start</option><option value="zero">zero pose – cold start</option><option value="random">random pose – cold start</option></select></label>
+        <label class="hint" title="Finish the network's answer with Levenberg-Marquardt (refine/lm_solver.py) and check it again with PyBullet"><input type="checkbox" id="ev-ref" checked> LM refinement</label>
+        <label class="hint">iterations <input id="ev-ref-it" type="number" min="1" max="500" value="30" style="width:60px"></label>
+        <label class="hint" title="Extra random starting points, only for targets still outside 1 mm / 1° after the network's start">restarts <input id="ev-ref-rs" type="number" min="0" max="256" value="16" style="width:60px"></label>
         <button id="ev-btn" class="primary">Evaluate</button><span id="ev-overlap" class="hint grow"></span>` : '<span class="hint">This run has no saved model.</span>'}</div></div>
   </div>`;
 
@@ -656,8 +819,8 @@ function renderDetails() {
     .set(ik.map((e) => e.epoch), [ik.map((e) => e.train_loss ?? null), ik.map((e) => e.val_mse ?? null)]);
   const es = m.params && m.params.early_stop;
   const ref = es && es.metric === 'pct_within' && state.posT === runTol(m) ? { value: +es.target_pct, label: `stop target ${+es.target_pct}%` } : null;
-  new LineChart($('d-acc'), { series: [{ name: 'train', color: COLORS.s1 }, { name: 'validation', color: COLORS.s2 }], yMin: 0, yFmt: (v) => v.toFixed(1), xLabel: epFmt, ref })
-    .set(ik.map((e) => e.epoch), [ik.map((e) => e.acc?.train?.acc_pos?.[state.posT] ?? null), ik.map((e) => e.acc?.val?.acc_pos?.[state.posT] ?? null)]);
+  new LineChart($('d-acc'), { series: ACC_SERIES, yMin: 0, yFmt: (v) => v.toFixed(1), xLabel: epFmt, ref })
+    .set(ik.map((e) => e.epoch), accSeries(ik, state.posT));
   new LineChart($('d-col'), { series: [{ name: 'train', color: COLORS.s1 }, { name: 'validation', color: COLORS.s2 }], yFmt: (v) => v.toFixed(1), xLabel: epFmt })
     .set(col.map((e) => e.epoch), [col.map((e) => e.train_acc ?? null), col.map((e) => e.val_acc ?? null)]);
 
@@ -672,7 +835,10 @@ function renderDetails() {
     upd();
     $('ev-btn').onclick = async () => {
       try {
-        await api('/api/evaluate', { run_id: m.id, dataset_id: $('ev-ds').value, max_samples: +$('ev-max').value });
+        await api('/api/evaluate', {
+          run_id: m.id, dataset_id: $('ev-ds').value, max_samples: +$('ev-max').value, seed_mode: $('ev-seed').value,
+          refine: $('ev-ref').checked ? { iters: +$('ev-ref-it').value, restarts: +$('ev-ref-rs').value, use_seed: true, tol_mm: 1, tol_deg: 1 } : null,
+        });
         toast('Evaluation started – results appear here when done.');
       } catch (e) { toast(e.message, true); }
     };
@@ -698,11 +864,11 @@ function renderInfLog() {
     <td>${esc(r.source)}${r.dataset_index != null ? ` #${r.dataset_index}` : ''}</td><td>${esc(r.seed_mode || '')}</td>
     <td class="num">${fmt(r.pos_err_mm, 1)}</td><td class="num">${fmt(r.orn_err_deg, 1)}</td><td class="num">${fmt(r.joint_err_deg, 1)}</td>
     <td class="num">${fmt(r.latency_ms, 3)}</td>
-    <td class="num">${r.refined ? `${fmt(r.refined.pos_err_mm, 1)} mm / ${fmt(r.refined.orn_err_deg, 2)}° (${r.refined.iters} it)` : '—'}</td>
+    <td class="num">${r.refined ? `${fmtSmall(r.refined.pos_err_mm)} mm / ${fmtSmall(r.refined.orn_err_deg)}° (${(r.refined.method || 'dls').toUpperCase()} ${r.refined.iters} it)${r.refined.success != null ? (r.refined.success ? ' <span class="tag good">✓</span>' : ' <span class="tag bad">✗</span>') : ''}` : '—'}</td>
     <td>${r.pred_self_collision ? '<span class="tag bad">yes</span>' : '<span class="tag good">no</span>'}</td>
     <td class="num">${r.collision_net_prob != null ? fmt(r.collision_net_prob, 2) : '—'}</td></tr>`).join('');
   pane.innerHTML = `<div class="pane-pad">
-    <div class="hint">${s.n} inference${s.n === 1 ? '' : 's'} logged for <span class="id">${esc(m.id)}</span> · network output: ${pct(s.network.acc_pos[state.posT])} within ${state.posT} mm, mean ${fmt(s.network.pos_mean_mm, 1)} mm / ${fmt(s.network.orn_mean_deg, 1)}°${s.refined ? ` · after refinement: ${pct(s.refined.acc_pos[state.posT])} within ${state.posT} mm` : ''}</div>
+    <div class="hint">${s.n} inference${s.n === 1 ? '' : 's'} logged for <span class="id">${esc(m.id)}</span>${s.refined ? ` · <b>final answer (network + refinement): ${pct(s.refined.success?.['1|1'])} meet &lt; 1 mm & &lt; 1°</b> (${s.refined.n} with refinement)` : ''} · network alone: ${pct(s.network.acc_pos[state.posT])} within ${state.posT} mm, mean ${fmt(s.network.pos_mean_mm, 1)} mm / ${fmt(s.network.orn_mean_deg, 1)}°</div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Target</th><th>Seed</th><th class="num">Pos err (mm)</th><th class="num">Orn err (°)</th><th class="num">Joint err (°)</th>
       <th class="num">Latency (ms)</th><th class="num">Refined</th><th>Self-collision</th><th class="num">Collision-net P</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -875,9 +1041,11 @@ $('ds-play').onclick = async () => {
 
 // ---- movement split (successful vs collision %) ----
 function naturalRate() {
-  // share of colliding samples in this robot's most recent natural-split dataset
+  // share of colliding samples in this robot's most recent natural-split dataset from the selected generator
+  const gen = $('gen-generator').value || 'base';
   const d = state.lib.datasets
-    .filter((x) => x.robot === state.robot && x.status === 'ready' && x.n && (!x.split || x.split.mode === 'natural'))
+    .filter((x) => x.robot === state.robot && x.status === 'ready' && x.n && (!x.split || x.split.mode === 'natural')
+      && genIdOf(x) === gen)
     .sort((a, b) => (b.created || 0) - (a.created || 0))[0];
   return d ? (100 * d.n_colliding) / d.n : null;
 }
@@ -898,7 +1066,8 @@ function updateSplitUI(src) {
   const info = $('gen-split-info');
   info.classList.remove('warn');
   if (natural) {
-    info.textContent = `Keeps whatever generate() produces – ${nat != null ? `your last natural ${state.robot} dataset had ${nat.toFixed(1)}% collision movements` : 'typically ≈15–16% collision movements for xArm6 / KUKA'}. The file is exactly generate()'s output.`;
+    info.textContent = `Keeps whatever generate() produces – ${nat != null ? `your last natural ${state.robot} dataset had ${nat.toFixed(1)}% collision movements` : 'typically ≈15–16% collision movements for xArm6 / KUKA'}. The file is exactly generate()'s output.`
+      + (nat === 0 ? ' This generator keeps collision movements out of the dataset (in its rejected_* arrays) – choose a split to add them as labelled collision movements for the collision classifier.' : '');
     return;
   }
   const nCol = Math.round((n * col) / 100), nFree = n - nCol;
@@ -923,6 +1092,9 @@ $('gen-btn').onclick = async () => {
     const r = await api('/api/generate', {
       robot: state.robot, n: +$('gen-n').value, seed: +$('gen-seed').value, delay_ms: +$('gen-delay').value,
       collision_pct: $('gen-natural').checked ? null : +$('gen-col-pct').value,
+      generator: $('gen-generator').value || 'base',
+      gen_opts: genOptValues(),
+      ignore_structural_pairs: !!($('gen-ignore-pairs') && $('gen-ignore-pairs').checked),
     });
     state.pendingDs = r.ds_id;
   } catch (e) { toast(e.message, true); }
@@ -1021,7 +1193,11 @@ async function runInference({ quiet = false } = {}) {
   if (!run) throw new Error('No trained model selected.');
   if (run.robot !== state.robot) await selectRobot(run.robot);
   const mode = $('inf-target').value;
-  const req = { run_id: runId, source: mode, refine_iters: +$('inf-refine').value, seed_mode: $('inf-seed').value };
+  const method = $('inf-ref-method').value;
+  const req = {
+    run_id: runId, source: mode, seed_mode: $('inf-seed').value, refine_method: method,
+    refine_iters: method === 'none' ? 0 : +$('inf-refine').value, refine_restarts: +$('inf-ref-rs').value,
+  };
   let qTrue = null;
   if (mode === 'test' || mode === 'dataset') {
     let ds, i;
@@ -1048,18 +1224,25 @@ async function runInference({ quiet = false } = {}) {
   const res = await api('/api/infer', req);
   const rec = res.record;
   $('follow').checked = false;
-  const base = await api('/api/fk', { robot: state.robot, q: qTrue || req.seed_q });
-  showPose(base, { ghost: res.fk_pred, refined: res.fk_refined || null, target: rec.target_pos, targetOrn: rec.target_orn });
-  renderJointTable($('ds-detail'), qTrue || req.seed_q, rec.q_pred);
+  const ref = rec.refined;
+  if (res.fk_refined) {
+    // solid robot = the final answer (network + refinement): its end-effector sits on the target frame
+    showPose(res.fk_refined, { ghost: res.fk_pred, refined: null, target: rec.target_pos, targetOrn: rec.target_orn });
+  } else {
+    const base = await api('/api/fk', { robot: state.robot, q: qTrue || req.seed_q });
+    showPose(base, { ghost: res.fk_pred, refined: null, target: rec.target_pos, targetOrn: rec.target_orn });
+  }
+  renderJointTable($('ds-detail'), ref ? ref.q : (qTrue || req.seed_q), rec.q_pred);
+  $('inf-final').innerHTML = finalCard(rec);
   $('inf-kv').innerHTML = `<dt>Network latency</dt><dd>${fmt(rec.latency_ms, 3)} ms (CPU)</dd>
-    <dt>EE position error</dt><dd>${fmt(rec.pos_err_mm, 1)} mm ${rec.pos_err_mm <= +runTol(run) ? `<span class="tag good">within ${runTol(run)} mm</span>` : `<span class="tag bad">outside ${runTol(run)} mm</span>`}</dd>
-    <dt>EE orientation error</dt><dd>${fmt(rec.orn_err_deg, 1)}°</dd>
-    <dt>Mean joint error vs truth</dt><dd>${rec.joint_err_deg != null ? fmt(rec.joint_err_deg, 1) + '°' : '— (no truth)'}</dd>
-    <dt>Prediction self-collides</dt><dd>${rec.pred_self_collision ? '<span class="badge bad">yes</span>' : '<span class="badge good">no</span>'} · collision-net P ${fmt(rec.collision_net_prob, 2)}</dd>
-    <dt>Joint-limit violation</dt><dd>${rec.limit_violation ? '<span class="badge bad">yes</span>' : '<span class="badge good">no</span>'}</dd>
-    ${rec.refined ? `<dt>After ${rec.refined.iters} DLS iterations</dt><dd>${fmt(rec.refined.pos_err_mm, 1)} mm · ${fmt(rec.refined.orn_err_deg, 2)}° · ${fmt(rec.refined.ms, 2)} ms</dd>` : ''}`;
+    <dt>Network: joint error vs truth</dt><dd>${rec.joint_err_deg != null ? fmt(rec.joint_err_deg, 1) + '° mean' : '— (no truth)'}</dd>
+    <dt>Network: self-collides</dt><dd>${rec.pred_self_collision ? '<span class="badge bad">yes</span>' : '<span class="badge good">no</span>'} · collision-net P ${fmt(rec.collision_net_prob, 2)}</dd>
+    <dt>Network: joint limits</dt><dd>${rec.limit_violation ? '<span class="badge bad">violated</span>' : '<span class="badge good">ok</span>'}</dd>`;
+  const finalLine = ref
+    ? `FINAL (network + ${(ref.method || 'dls').toUpperCase()}) q (deg) ${degs(ref.q)}\n→ ${fmtSmall(ref.pos_err_mm)} mm · ${fmtSmall(ref.orn_err_deg)}° · ${fmt(ref.ms, 1)} ms${ref.success != null ? (ref.success ? '   ✓ < ' + ref.tol_mm + ' mm & < ' + ref.tol_deg + '°' : '   ✗ goal missed') : ''}\n`
+    : '';
   setHud(`Inference · ${runId} · target: ${req.source}${req.dataset_index != null ? ' #' + req.dataset_index : ''}`,
-    `target pos   ${fmtVec(rec.target_pos)}\ntarget quat  ${fmtVec(rec.target_orn)}\nseed q (deg) ${degs(rec.seed_q)}   (${req.seed_mode})\n${qTrue ? 'truth q (deg) ' + degs(qTrue) + '\n' : ''}model q (deg) ${degs(rec.q_pred)}\n→ ${fmt(rec.pos_err_mm, 1)} mm · ${fmt(rec.orn_err_deg, 1)}° · ${fmt(rec.latency_ms, 3)} ms${rec.refined ? `\nrefined (${rec.refined.iters} DLS it, aqua ghost) → ${fmt(rec.refined.pos_err_mm, 1)} mm · ${fmt(rec.refined.orn_err_deg, 2)}°` : ''}\n${qTrue ? 'solid = true solution' : 'solid = seed pose'} · orange ghost = network`);
+    `target pos   ${fmtVec(rec.target_pos)}\ntarget quat  ${fmtVec(rec.target_orn)}\nseed q (deg) ${degs(rec.seed_q)}   (${req.seed_mode})\n${finalLine}network alone q (deg) ${degs(rec.q_pred)}\n→ ${fmt(rec.pos_err_mm, 1)} mm · ${fmt(rec.orn_err_deg, 1)}° · ${fmt(rec.latency_ms, 3)} ms\n${ref ? 'solid robot = FINAL answer' : (qTrue ? 'solid = true solution' : 'solid = seed pose')} · orange ghost = network alone · red frame = target`);
   if (!quiet && state.selRun === runId) refreshDetailSoon();
   return rec;
 }
@@ -1133,7 +1316,10 @@ async function onEvent(ev) {
       $('gen-pct').textContent = '100%';
       $('gen-kv').innerHTML = `<dt>Successful (collision-free)</dt><dd>${(ev.n - ev.n_colliding).toLocaleString()}</dd>
         <dt>Collision movements</dt><dd>${ev.n_colliding.toLocaleString()}</dd>
-        ${ev.split && ev.split.mode === 'custom' ? `<dt>Pool generated</dt><dd>${ev.split.pool_n.toLocaleString()} (${ev.split.pool_colliding.toLocaleString()} colliding)</dd>` : '<dt>Split</dt><dd>natural (generate() output as-is)</dd>'}
+        ${ev.split && ev.split.mode === 'custom' ? `<dt>Pool generated</dt><dd>${ev.split.pool_n.toLocaleString()} (${ev.split.pool_colliding.toLocaleString()} colliding)</dd>` : '<dt>Split</dt><dd>natural (generator output as-is)</dd>'}
+        <dt>Generator</dt><dd>${esc(genShort((ev.generator && ev.generator.id) || 'base'))}</dd>
+        ${ev.rejected ? `<dt>Kept apart (rejected_* arrays)</dt><dd>${ev.rejected.n.toLocaleString()}${ev.rejected.colliding != null ? ` (${ev.rejected.colliding.toLocaleString()} colliding, ${ev.rejected.too_close.toLocaleString()} too close)` : ''}</dd>` : ''}
+        ${genReportRows(ev.generator_report)}
         <dt>Library entry</dt><dd>${esc(ev.ds_id)}</dd>`;
       return;
     }
@@ -1212,19 +1398,23 @@ function onGenSample(ev) {
   if (ev.robot !== state.robot) return;
   const p = (100 * ev.i) / ev.n;
   $('gen-bar').style.width = p + '%';
+  const tried = ev.tried ?? ev.i;          // adapted generators: i = samples kept, tried = samples checked
+  const tail = ev.tried != null ? ` · ${ev.tried.toLocaleString()} tried` : ` · ${ev.phase}`;
   $('gen-label').textContent = ev.target_n && ev.target_n !== ev.n
-    ? `pool sample ${ev.i.toLocaleString()} / ${ev.n.toLocaleString()} · ${ev.phase}`
-    : `sample ${ev.i.toLocaleString()} / ${ev.n.toLocaleString()} · ${ev.phase}`;
+    ? `pool sample ${ev.i.toLocaleString()} / ${ev.n.toLocaleString()}${tail}`
+    : `sample ${ev.i.toLocaleString()} / ${ev.n.toLocaleString()}${tail}`;
   $('gen-pct').textContent = p.toFixed(0) + '%';
-  $('gen-kv').innerHTML = `<dt>Colliding so far</dt><dd>${ev.n_colliding.toLocaleString()} (${((100 * ev.n_colliding) / ev.i).toFixed(1)}%)</dd>
-    <dt>Sampling phase</dt><dd>${ev.phase === 'uniform' ? 'uniform in joint limits' : 'near joint limits (15% edges)'}</dd>`;
+  const phaseText = { uniform: 'uniform in joint limits', 'near-limits': 'near joint limits (15% edges)' }[ev.phase] || ev.phase;
+  $('gen-kv').innerHTML = `<dt>Colliding so far</dt><dd>${ev.n_colliding.toLocaleString()} (${((100 * ev.n_colliding) / Math.max(1, tried)).toFixed(1)}% of ${tried.toLocaleString()} checked)</dd>
+    ${ev.tried != null ? `<dt>Kept out of the dataset</dt><dd>${(ev.tried - ev.i).toLocaleString()} (colliding or too close)</dd>` : `<dt>Sampling phase</dt><dd>${esc(phaseText)}</dd>`}`;
   appendCloud(ev.pos, ev.collided);
   const now = performance.now();
   if (now - genFlushT > 150 || ev.i === ev.n) { flushCloud(); genFlushT = now; }
   if (!follow()) return;
   showPose(ev.fk, { target: ev.pos, targetOrn: ev.orn });
+  const verdict = ev.collided ? 'SELF-COLLIDING (label 1)' : ev.rejected ? 'too close to a collision – rejected' : 'free (label 0)';
   setHud(`Generating dataset · sample ${ev.i.toLocaleString()} / ${ev.n.toLocaleString()}`,
-    `1. random q (deg)  ${degs(ev.q)}\n2. FK → EE pos     ${fmtVec(ev.pos)}\n        EE quat    ${fmtVec(ev.orn)}\n3. collision check → ${ev.collided ? 'SELF-COLLIDING (label 1)' : 'free (label 0)'}`);
+    `1. random q (deg)  ${degs(ev.q)}\n2. FK → EE pos     ${fmtVec(ev.pos)}\n        EE quat    ${fmtVec(ev.orn)}\n3. collision check → ${verdict}`);
 }
 
 function onTrainSample(ev) {
@@ -1409,7 +1599,7 @@ function initCharts() {
   charts.gpu = new LineChart($('c-gpu'), { series: [{ name: 'GPU', color: COLORS.s3 }], yMin: 0, yMax: 100, yFmt: (v) => v.toFixed(0), xLabel: ago });
   charts.vram = new LineChart($('c-vram'), { series: [{ name: 'VRAM', color: COLORS.s1 }], yMin: 0, yFmt: (v, long) => v.toFixed(long ? 2 : 1), xLabel: ago });
   charts.loss = new LineChart($('c-loss'), { series: two, yFmt: (v) => v.toFixed(3), xLabel: epFmt });
-  charts.ikacc = new LineChart($('c-ikacc'), { series: two, yMin: 0, yFmt: (v) => v.toFixed(1), xLabel: epFmt });
+  charts.ikacc = new LineChart($('c-ikacc'), { series: ACC_SERIES, yMin: 0, yFmt: (v) => v.toFixed(1), xLabel: epFmt });
   charts.acc = new LineChart($('c-acc'), { series: two, yFmt: (v) => v.toFixed(1), xLabel: epFmt });
   charts.err = new LineChart($('c-err'), { series: [{ name: 'pos error', color: COLORS.s2 }], yFmt: (v) => v.toFixed(0), xLabel: (x, long) => (long ? `sample during epoch ${x}` : `ep ${x}`) });
 }
@@ -1424,13 +1614,20 @@ function drawStatCharts() {
   charts.vram.set(ts, [s.map((x) => (x.gpus && x.gpus[0] ? x.gpus[0].mem_used / 1024 : null))]);
 }
 
+// per-epoch accuracy within T mm: network (train / validation) and network + LM refinement (ACC_SERIES)
+function accSeries(ik, T) {
+  return [ik.map((e) => e.acc?.train?.acc_pos?.[T] ?? null), ik.map((e) => e.acc?.val?.acc_pos?.[T] ?? null),
+    ik.map((e) => e.acc_refined?.train?.acc_pos?.[T] ?? null), ik.map((e) => e.acc_refined?.val?.acc_pos?.[T] ?? null)];
+}
+
 function drawTrainCharts() {
   const ik = state.liveIk, col = state.liveCol, T = state.liveTol, es = state.liveEs;
   document.querySelectorAll('.thr-label').forEach((el) => (el.textContent = `${T} mm`));
   charts.ikacc.ref = es && es.metric === 'pct_within' ? { value: +es.target_pct, label: `stop target ${+es.target_pct}%` } : null;
   charts.err.ref = { value: +T, label: `tolerance ${T} mm` };
   charts.loss.set(ik.map((e) => e.epoch), [ik.map((e) => e.train_loss), ik.map((e) => e.val_mse)]);
-  charts.ikacc.set(ik.map((e) => e.epoch), [ik.map((e) => e.acc?.train?.acc_pos?.[T] ?? null), ik.map((e) => e.acc?.val?.acc_pos?.[T] ?? null)]);
+  charts.ikacc.set(ik.map((e) => e.epoch), accSeries(ik, T));
+  $('c-ikacc-lm').style.display = ik.some((e) => e.acc_refined) ? '' : 'none';
   charts.acc.set(col.map((e) => e.epoch), [col.map((e) => e.train_acc ?? null), col.map((e) => e.val_acc ?? null)]);
   charts.err.set(state.liveErr.map((p) => p.epoch), [state.liveErr.map((p) => p.y)]);
 }
@@ -1513,6 +1710,7 @@ async function boot() {
     $('robot-select').appendChild(o);
   }
   state.lib = await api('/api/library');
+  await refreshGenerators();
   await selectRobot('xarm6');
   renderLibrary();
   syncInferenceMode();

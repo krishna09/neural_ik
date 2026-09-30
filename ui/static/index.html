@@ -45,6 +45,9 @@
     <details class="panel" open>
       <summary><span class="step">1</span>Generate Dataset</summary>
       <div class="panel-body">
+        <label class="field">Generator<select id="gen-generator"></select></label>
+        <div id="gen-generator-info" class="hint"></div>
+        <div id="gen-opts" class="split-box" hidden></div>
         <div class="grid2">
           <label class="field">Samples (n)<input id="gen-n" type="number" min="100" step="1000" value="20000"></label>
           <label class="field">Seed<input id="gen-seed" type="number" value="0"></label>
@@ -70,7 +73,7 @@
           <div class="progress"><div id="gen-bar"></div></div>
         </div>
         <dl class="kv" id="gen-kv"></dl>
-        <div class="hint">Runs <code>generate_dataset.generate()</code> unchanged. Every run is saved as a new library entry in <code>ui/workspace/library/datasets/</code> – nothing is overwritten.</div>
+        <div class="hint">The base generator runs <code>generate_dataset.generate()</code> unchanged; generators in <code>datagen/</code> are alternatives. Every run is saved as a new library entry in <code>ui/workspace/library/datasets/</code> – nothing is overwritten.</div>
       </div>
     </details>
 
@@ -188,12 +191,20 @@
               <option value="zero">Zero pose</option>
             </select>
           </label>
-          <label class="field">Refine: DLS iterations<input id="inf-refine" type="number" min="0" max="200" value="0" title="0 = network only; >0 = hybrid (network warm start + PyBullet damped least squares, as in evaluate.py)"></label>
+          <label class="field" title="Finish the network's answer with a numerical solver. LM = refine/lm_solver.py (Levenberg-Marquardt, joint limits kept, reaches < 1 mm / < 1°); DLS = PyBullet calculateInverseKinematics, as in evaluate.py">Refinement
+            <select id="inf-ref-method">
+              <option value="lm">LM solver – for &lt; 1 mm / &lt; 1° (recommended)</option>
+              <option value="dls">PyBullet DLS (evaluate.py)</option>
+              <option value="none">None – network only</option>
+            </select></label>
+          <label class="field">Iterations<input id="inf-refine" type="number" min="1" max="500" value="30"></label>
+          <label class="field" title="LM only: extra random starting points, used only if the network's start is still outside 1 mm / 1° (e.g. with a zero-pose seed)">Random restarts (LM)<input id="inf-ref-rs" type="number" min="0" max="256" value="16"></label>
         </div>
         <div class="row">
           <button id="inf-btn" class="primary">Run inference</button>
           <button id="inf-batch" title="Runs 20 random held-out test samples of this run and logs each">×20 test samples</button>
         </div>
+        <div id="inf-final"></div>
         <dl class="kv" id="inf-kv"></dl>
         <div class="hint">Every inference is appended to the run's <code>inference_log.jsonl</code>; its accuracy is shown in Run details.</div>
       </div>
@@ -212,9 +223,8 @@
         <button id="fit-btn">Reset view</button>
       </div>
       <div id="legend" class="overlay">
-        <span><i style="background:#8fa3b8"></i>Robot (truth / current)</span>
-        <span><i style="background:var(--series-2);opacity:.6"></i>Network prediction (ghost)</span>
-        <span><i style="background:var(--series-3);opacity:.6"></i>Refined (DLS)</span>
+        <span><i style="background:#8fa3b8"></i>Robot (inference: final answer · else truth / current)</span>
+        <span><i style="background:var(--series-2);opacity:.6"></i>Network alone (ghost)</span>
         <span><i style="background:#e34948;border-radius:50%"></i>Target EE frame</span>
         <span><i style="background:var(--series-1);border-radius:50%"></i>EE positions: free</span>
         <span><i style="background:#e66767;border-radius:50%"></i>colliding</span>
@@ -268,7 +278,7 @@
     </div>
     <div class="chart">
       <div class="ctitle"><span>IK accuracy: EE within <b class="thr-label">50 mm</b> (%)</span>
-        <span class="legend"><span><i style="background:var(--series-1)"></i>train</span><span><i style="background:var(--series-2)"></i>validation</span></span></div>
+        <span class="legend"><span><i style="background:var(--series-1)"></i>train</span><span><i style="background:var(--series-2)"></i>validation</span><span id="c-ikacc-lm" style="display:none"><span><i style="background:var(--series-3)"></i>train + LM</span> <span><i style="background:#d4a72c"></i>val + LM</span></span></span></div>
       <canvas id="c-ikacc"></canvas>
     </div>
     <div class="chart">

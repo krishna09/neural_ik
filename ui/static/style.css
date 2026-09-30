@@ -284,6 +284,17 @@ table.tbl th {
 }
 table.tbl td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
 table.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tbl td.strong { color: var(--text-primary); font-weight: 600; }
+table.tbl td:first-child { white-space: normal; min-width: 200px; max-width: 340px; }
+table.tbl tr.refined td { background: rgba(25, 158, 112, .08); }
+table.tbl tr.refined td:first-child { padding-left: 18px; color: var(--text-primary); }
+.goal-box { border: 1px solid var(--series-3); border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px; background: rgba(25, 158, 112, .06); }
+.goal-box h4 { margin: 0 0 6px; font-size: 13px; color: var(--text-primary); }
+.goal-box table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.goal-box th, .goal-box td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+.goal-box td.big { font-size: 15px; font-weight: 700; color: var(--text-primary); text-align: right; }
+.goal-box th.r { text-align: right; }
+.goal-box td.big.ok { color: #3ecf8e; }
 table.tbl tr.sel td { background: var(--surface-3); }
 table.tbl tbody tr:hover td { background: var(--surface-2); }
 table.tbl .id { font-family: var(--mono); font-size: 11px; color: var(--text-primary); }
@@ -314,3 +325,15 @@ table.tbl tr.group td { color: var(--text-muted); font-size: 11px; padding-top: 
   .layout { grid-template-columns: 300px minmax(0, 1fr); }
   #right { display: none; }
 }
+
+/* Run Inference: final answer card (network + refinement first, network alone below) */
+.final-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0 4px; background: rgba(255, 255, 255, .02); }
+.final-card.ok { border-color: #3ecf8e; background: rgba(62, 207, 142, .09); }
+.final-card.bad { border-color: #e5534b; background: rgba(229, 83, 75, .09); }
+.final-card .fc-title { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.final-card.ok .fc-verdict { color: #3ecf8e; font-weight: 700; }
+.final-card.bad .fc-verdict { color: #e5534b; font-weight: 700; }
+.final-card .fc-main { font-size: 19px; font-weight: 700; color: var(--text-primary); margin: 6px 0 4px; line-height: 1.3; }
+.final-card .fc-unit { font-size: 11px; font-weight: 400; color: var(--text-muted); }
+.final-card .fc-sub { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.final-card .fc-net { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--text-secondary); }

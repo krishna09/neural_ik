@@ -20,7 +20,6 @@ editing or deleting a model file never breaks evaluation / inference of
 older runs.
 """
 
-import glob
 import hashlib
 import importlib.util
 import inspect
@@ -82,12 +81,23 @@ def source_path(model_id):
         return BASE_FILE
     if not model_id.startswith("modelset/"):
         raise ValueError(f"unknown model id {model_id!r}")
-    path = os.path.normpath(os.path.join(MODELSET_DIR, model_id.split("/", 1)[1]))
-    if os.path.dirname(path) != os.path.normpath(MODELSET_DIR) or not path.endswith(".py"):
+    root = os.path.normpath(MODELSET_DIR)
+    path = os.path.normpath(os.path.join(root, model_id.split("/", 1)[1]))
+    if os.path.commonpath([root, path]) != root or not path.endswith(".py"):
         raise ValueError(f"bad model id {model_id!r}")
     if not os.path.isfile(path):
         raise FileNotFoundError(f"model file not found: {_rel(path)}")
     return path
+
+
+def model_files():
+    """Every model file in modelset/ and its sub-folders (one folder per model
+    family). Files and folders starting with '_' or '.' are skipped."""
+    out = []
+    for root, dirs, files in os.walk(MODELSET_DIR):
+        dirs[:] = sorted(d for d in dirs if not d.startswith(("_", ".")))
+        out += [os.path.join(root, f) for f in sorted(files) if f.endswith(".py") and not f.startswith("_")]
+    return out
 
 
 def model_class_from_file(path, tag="m"):
@@ -119,15 +129,41 @@ def _describe(cls, mod):
     return " ".join(line.strip() for line in text.strip().splitlines()[:3] if line.strip())[:160]
 
 
-def list_models(dof):
+class robot_env:
+    """Tell robot-aware models (e.g. ones that compute forward kinematics
+    internally) which robot they are built for: sets IK_ROBOT while inside."""
+
+    def __init__(self, robot):
+        self.robot = robot
+
+    def __enter__(self):
+        self.prev = os.environ.get("IK_ROBOT")
+        if self.robot:
+            os.environ["IK_ROBOT"] = self.robot
+        return self
+
+    def __exit__(self, *exc):
+        if self.prev is None:
+            os.environ.pop("IK_ROBOT", None)
+        else:
+            os.environ["IK_ROBOT"] = self.prev
+
+
+def list_models(dof, robot=None):
     """Base model + every modelset/*.py (files starting with '_' are skipped)."""
+    with robot_env(robot):
+        return _list_models(dof)
+
+
+def _list_models(dof):
     entries = [(BASE_ID, BASE_FILE)]
-    for p in sorted(glob.glob(os.path.join(MODELSET_DIR, "*.py"))):
-        if not os.path.basename(p).startswith("_"):
-            entries.append((f"modelset/{os.path.basename(p)}", p))
+    for p in model_files():
+        entries.append(("modelset/" + os.path.relpath(p, MODELSET_DIR).replace("\\", "/"), p))
     out = []
     for mid, path in entries:
-        e = {"id": mid, "file": _rel(path), "base": mid == BASE_ID}
+        sub = os.path.relpath(os.path.dirname(path), MODELSET_DIR).replace("\\", "/")
+        e = {"id": mid, "file": _rel(path), "base": mid == BASE_ID,
+             "group": "" if mid == BASE_ID or sub == "." else sub}
         try:
             mod = load_module(path, "list")
             cls = find_class(mod)
@@ -179,7 +215,8 @@ def load_run_models(run_dir, meta, dof, device="cpu"):
     """(ik_net, collision_net or None) of a saved run, in eval mode."""
     import train_ik
     ik_sd = torch.load(os.path.join(run_dir, meta["models"]["ik"]), map_location=device)
-    ik = build_for_state_dict(run_model_class(run_dir, meta), dof, ik_sd).to(device).eval()
+    with robot_env(meta.get("robot")):
+        ik = build_for_state_dict(run_model_class(run_dir, meta), dof, ik_sd).to(device).eval()
     col = None
     col_path = os.path.join(run_dir, meta["models"].get("collision") or "")
     if os.path.isfile(col_path):
