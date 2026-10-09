@@ -1,0 +1,9 @@
+# VS Code debugging inside the container (Run and Debug -> "Containers: Python - Neural IK Studio"),
+# or by hand:  docker compose -f compose.yaml -f compose.debug.yaml up
+# Needs internet the first time (pip installs debugpy into the container).
+services:
+  neuralik:
+    command: ["sh", "-c", "pip install --user debugpy && python -m debugpy --listen 0.0.0.0:5678 --wait-for-client ui/server.py --host 0.0.0.0 --port 8765 --no-browser"]
+    ports:
+      - "5678:5678"
+    restart: "no"

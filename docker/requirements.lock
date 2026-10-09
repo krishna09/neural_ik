@@ -1,0 +1,7 @@
+# Exact versions for the Docker image (the versions this project was developed and tested with).
+# torch is installed separately in the Dockerfile from the PyTorch index chosen by TORCH_VARIANT.
+pybullet==3.2.7
+numpy==2.5.3
+matplotlib==3.11.2
+psutil==7.2.2
+pillow==12.3.0

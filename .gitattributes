@@ -1,0 +1,4 @@
+# Shell scripts must keep Unix line endings, or they fail inside Linux / Docker.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.lock text eol=lf

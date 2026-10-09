@@ -1,0 +1,28 @@
+# Keep the image small and free of local-only files.
+
+# Python / tooling
+**/__pycache__
+**/*.pyc
+.venv
+.git
+.gitignore
+.vscode
+.idea
+.env
+
+# Docker files themselves
+Dockerfile*
+compose*.yaml
+docker-compose*.yml
+.dockerignore
+*.tar
+*.tar.gz
+
+# Library of datasets / trained runs (can be GBs) - mounted as a volume instead
+ui/workspace
+
+# Generated datasets
+data/*.npz
+
+# Project documents (not needed to run)
+*.pdf

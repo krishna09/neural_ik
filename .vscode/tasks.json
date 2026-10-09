@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "docker-build",
+			"label": "docker-build",
+			"platform": "python",
+			"dockerBuild": {
+				"tag": "neuralik:latest",
+				"dockerfile": "${workspaceFolder}/Dockerfile",
+				"context": "${workspaceFolder}",
+				"pull": true
+			}
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run: debug",
+			"dependsOn": [
+				"docker-build"
+			],
+			"dockerRun": {
+				"ports": [
+					{ "containerPort": 8765, "hostPort": 8765 }
+				],
+				"volumes": [
+					{ "localPath": "${workspaceFolder}/ui/workspace", "containerPath": "/app/ui/workspace" }
+				]
+			},
+			"python": {
+				"file": "ui/server.py",
+				"args": [
+					"--host",
+					"0.0.0.0",
+					"--port",
+					"8765",
+					"--no-browser"
+				]
+			}
+		}
+	]
+}

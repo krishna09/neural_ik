@@ -1,0 +1,27 @@
+# Neural IK Studio.  Open http://localhost:8765 after `docker compose up -d`.
+#
+#   CPU (any PC):          docker compose up -d
+#   NVIDIA GPU:            docker compose -f compose.yaml -f compose.gpu.yaml up -d
+#
+# On an offline PC the image must already be loaded (docker load -i neuralik_image.tar);
+# Compose then uses it and never tries to build or download anything.
+services:
+  neuralik:
+    image: neuralik:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TORCH_VARIANT: ${TORCH_VARIANT:-cu126}
+    pull_policy: never
+    ports:
+      - "${NEURALIK_PORT:-8765}:8765"
+    volumes:
+      # the UI's library (datasets, trained runs, renders) lives on the host, so it survives
+      # container updates and can be copied between PCs together with the code
+      - ./ui/workspace:/app/ui/workspace
+    # run as the host user so files written to ./ui/workspace belong to you (Linux hosts;
+    # set HOST_UID / HOST_GID if your user id is not 1000 - `id -u`, `id -g`)
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    shm_size: "2gb"   # PyTorch DataLoader workers need more than Docker's default 64 MB
+    restart: unless-stopped

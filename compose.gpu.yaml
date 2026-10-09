@@ -1,0 +1,12 @@
+# Add the NVIDIA GPU to the container (needs the NVIDIA driver + NVIDIA Container Toolkit on the
+# host; Docker Desktop on Windows with WSL2 has GPU support built in):
+#   docker compose -f compose.yaml -f compose.gpu.yaml up -d
+services:
+  neuralik:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
