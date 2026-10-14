@@ -66,8 +66,8 @@ Run from the repository root with the main environment active. Times are for the
 | 1 | `python deliverables/scripts/pipeline/run_level1_baseline.py` | `results/baseline_repro/`, `results/training_history.csv` | ~1 min |
 | 2 | `python deliverables/scripts/pipeline/evaluate_methods.py` | `results/evaluation_metrics.csv`, `eval_summary.json`, `experiment_configuration.json`, `$NIK_WORK/eval_per_target.npz` | ~1 min |
 | 3 | `python deliverables/scripts/pipeline/make_charts.py` | `results/accuracy_comparison.png`, `results/training_validation.png` | seconds |
-| 4 | `python deliverables/scripts/pipeline/train_level2_repro.py --steps 20000000 --workers 3` | `$NIK_WORK/level2_repro/policy.pt`, `train_log.jsonl` | ~2.2 h |
-| 5 | `python deliverables/scripts/pipeline/evaluate_level2_repro.py` | `results/level2_repro_eval.json`, `results/level2_evaluation.csv` | ~10 min |
+| 4 | `python deliverables/scripts/pipeline/train_level2_repro.py --steps 20000000 --workers 3` | `$NIK_WORK/level2_repro/policy.pt`, `train_log.jsonl` | ~2 h (115 min of active training here) |
+| 5 | `python deliverables/scripts/pipeline/evaluate_level2_repro.py` | `results/level2_repro_eval.json`, `results/level2_evaluation.csv` | ~1.5 min |
 | 6 | `python deliverables/scripts/pipeline/export_sim_data.py` | `$NIK_WORK/sim/*.json` (every pose, error and event shown in the clips) | a few minutes |
 | 7 | `python deliverables/scripts/render/render_clips.py` | `simulations/*.mp4` (10 clips) | ~10–15 min per clip |
 | 8 | `ttsvenv/bin/python deliverables/scripts/video/narration.py` | `$NIK_WORK/voice/*.wav`, `timing.json` | a few minutes |
@@ -97,8 +97,11 @@ What will differ on another machine:
 - **Timings** (`time_ms_*` columns, the 17.5 µs Level 2 decision time) depend on the CPU and its load.
 - **Training runs** are not bit-identical across hardware and thread counts (floating-point order,
   multiprocessing). The baseline network re-trained here reaches 123 mm against 128 mm in the README;
-  the Level 2 reproduction's rates differ from the team's agent by a few percentage points. Both are
-  reported side by side; the cited numbers are never replaced by re-run ones.
+  the Level 2 reproduction lands within 3 percentage points of the team's agent in every scenario
+  ("everything at once": 81.0 % vs 84.0 % reached, 2.0 % collided for both). The straight-path and
+  potential-field baselines, which involve no training, reproduce the team's evaluation exactly, which
+  confirms that the seeds and environment are identical. Both agents are reported side by side; the
+  cited numbers are never replaced by re-run ones.
 - **PyBullet DLS** depends on its settings (100 iterations, residual threshold 1e-5, no limits or
   collision information, as in `evaluate.py`); other settings give other numbers.
 

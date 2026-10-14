@@ -1,0 +1,37 @@
+source,scenario,controller,n_episodes,success_pct,collision_pct,timeout_pct,steps_to_goal_mean,min_clearance_mm_mean,act_us_mean,policy_params,policy_decision_us
+team agent l2_20261013-185525 (recorded),mixed,straight path,200,57.0,43.0,0.0,41.5,245.3,16.9,,
+team agent l2_20261013-185525 (recorded),mixed,potential field,200,77.5,2.5,20.0,52.6,276.1,20.4,,
+team agent l2_20261013-185525 (recorded),mixed,DRL agent (PPO),200,88.5,2.0,9.5,57.2,286.3,60.4,11078,17.5
+team agent l2_20261013-185525 (recorded),static,straight path,200,55.0,45.0,0.0,41.9,222.5,12.1,,
+team agent l2_20261013-185525 (recorded),static,potential field,200,79.0,1.5,19.5,52.6,254.7,20.2,,
+team agent l2_20261013-185525 (recorded),static,DRL agent (PPO),200,89.5,1.5,9.0,56.4,269.7,42.4,11078,17.5
+team agent l2_20261013-185525 (recorded),sudden,straight path,200,80.5,19.5,0.0,40.7,379.8,12.2,,
+team agent l2_20261013-185525 (recorded),sudden,potential field,200,91.0,1.0,8.0,46.0,392.3,17.6,,
+team agent l2_20261013-185525 (recorded),sudden,DRL agent (PPO),200,94.0,1.5,4.5,45.7,395.7,40.1,11078,17.5
+team agent l2_20261013-185525 (recorded),moving,straight path,200,50.0,50.0,0.0,40.9,217.8,15.2,,
+team agent l2_20261013-185525 (recorded),moving,potential field,200,95.5,2.5,2.0,73.3,252.5,19.7,,
+team agent l2_20261013-185525 (recorded),moving,DRL agent (PPO),200,94.5,2.0,3.5,69.7,259.5,42.2,11078,17.5
+team agent l2_20261013-185525 (recorded),slip,straight path,200,98.5,1.5,0.0,42.7,500.0,11.5,,
+team agent l2_20261013-185525 (recorded),slip,potential field,200,98.5,1.5,0.0,42.7,500.0,16.3,,
+team agent l2_20261013-185525 (recorded),slip,DRL agent (PPO),200,98.5,1.5,0.0,43.5,500.0,40.8,11078,17.5
+team agent l2_20261013-185525 (recorded),combined,straight path,200,50.0,50.0,0.0,41.1,218.2,14.8,,
+team agent l2_20261013-185525 (recorded),combined,potential field,200,71.0,2.5,26.5,53.2,253.8,21.6,,
+team agent l2_20261013-185525 (recorded),combined,DRL agent (PPO),200,84.0,2.0,14.0,61.5,266.2,42.5,11078,17.5
+reproduction (re-trained for this presentation),mixed,straight path,200,57.0,43.0,0.0,41.5,245.3,11.1,,
+reproduction (re-trained for this presentation),mixed,potential field,200,77.5,2.5,20.0,52.6,276.1,15.2,,
+reproduction (re-trained for this presentation),mixed,DRL agent (PPO),200,87.0,2.0,11.0,58.5,283.5,20.9,11078,12.9
+reproduction (re-trained for this presentation),static,straight path,200,55.0,45.0,0.0,41.9,222.5,8.8,,
+reproduction (re-trained for this presentation),static,potential field,200,79.0,1.5,19.5,52.6,254.7,14.6,,
+reproduction (re-trained for this presentation),static,DRL agent (PPO),200,89.0,0.5,10.5,55.1,267.5,21.3,11078,12.9
+reproduction (re-trained for this presentation),sudden,straight path,200,80.5,19.5,0.0,40.7,379.8,9.5,,
+reproduction (re-trained for this presentation),sudden,potential field,200,91.0,1.0,8.0,46.0,392.3,14.5,,
+reproduction (re-trained for this presentation),sudden,DRL agent (PPO),200,92.5,0.5,7.0,46.0,387.2,22.4,11078,12.9
+reproduction (re-trained for this presentation),moving,straight path,200,50.0,50.0,0.0,40.9,217.8,9.4,,
+reproduction (re-trained for this presentation),moving,potential field,200,95.5,2.5,2.0,73.3,252.5,15.1,,
+reproduction (re-trained for this presentation),moving,DRL agent (PPO),200,95.0,2.0,3.0,74.3,257.5,22.0,11078,12.9
+reproduction (re-trained for this presentation),slip,straight path,200,98.5,1.5,0.0,42.7,500.0,8.6,,
+reproduction (re-trained for this presentation),slip,potential field,200,98.5,1.5,0.0,42.7,500.0,13.2,,
+reproduction (re-trained for this presentation),slip,DRL agent (PPO),200,99.0,1.0,0.0,43.4,500.0,20.1,11078,12.9
+reproduction (re-trained for this presentation),combined,straight path,200,50.0,50.0,0.0,41.1,218.2,8.6,,
+reproduction (re-trained for this presentation),combined,potential field,200,71.0,2.5,26.5,53.2,253.8,16.4,,
+reproduction (re-trained for this presentation),combined,DRL agent (PPO),200,81.0,2.0,17.0,58.3,264.3,21.7,11078,12.9

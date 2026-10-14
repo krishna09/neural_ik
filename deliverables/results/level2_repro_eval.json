@@ -1,0 +1,201 @@
+{
+ "robot": "xarm6",
+ "n_per_scenario": 200,
+ "seed": 50000,
+ "scenarios": {
+  "mixed": {
+   "policy": {
+    "n": 200,
+    "success_pct": 87.0,
+    "collision_pct": 2.0,
+    "timeout_pct": 11.0,
+    "steps_to_goal": 58.48850574712644,
+    "min_clearance_mm": 283.4944326363381,
+    "act_us": 20.912834490298255
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 57.0,
+    "collision_pct": 43.0,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 41.5,
+    "min_clearance_mm": 245.25436689833427,
+    "act_us": 11.149129515934014
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 77.5,
+    "collision_pct": 2.5,
+    "timeout_pct": 20.0,
+    "steps_to_goal": 52.6258064516129,
+    "min_clearance_mm": 276.1422527108766,
+    "act_us": 15.203061835116209
+   }
+  },
+  "static": {
+   "policy": {
+    "n": 200,
+    "success_pct": 89.0,
+    "collision_pct": 0.5,
+    "timeout_pct": 10.5,
+    "steps_to_goal": 55.12359550561798,
+    "min_clearance_mm": 267.51118666873384,
+    "act_us": 21.279107961782394
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 55.0,
+    "collision_pct": 45.0,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 41.86363636363637,
+    "min_clearance_mm": 222.5327273303374,
+    "act_us": 8.79529670890684
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 79.0,
+    "collision_pct": 1.5,
+    "timeout_pct": 19.5,
+    "steps_to_goal": 52.62658227848101,
+    "min_clearance_mm": 254.67885805500308,
+    "act_us": 14.590052726837591
+   }
+  },
+  "sudden": {
+   "policy": {
+    "n": 200,
+    "success_pct": 92.5,
+    "collision_pct": 0.5,
+    "timeout_pct": 7.0,
+    "steps_to_goal": 46.043243243243246,
+    "min_clearance_mm": 387.22358196560447,
+    "act_us": 22.44419500210256
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 80.5,
+    "collision_pct": 19.5,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 40.6583850931677,
+    "min_clearance_mm": 379.80824716231126,
+    "act_us": 9.494263957394024
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 91.0,
+    "collision_pct": 1.0,
+    "timeout_pct": 8.0,
+    "steps_to_goal": 46.03846153846154,
+    "min_clearance_mm": 392.2640413520262,
+    "act_us": 14.463310366906255
+   }
+  },
+  "moving": {
+   "policy": {
+    "n": 200,
+    "success_pct": 95.0,
+    "collision_pct": 2.0,
+    "timeout_pct": 3.0,
+    "steps_to_goal": 74.32105263157895,
+    "min_clearance_mm": 257.46791576030176,
+    "act_us": 22.009345782710046
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 50.0,
+    "collision_pct": 50.0,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 40.86,
+    "min_clearance_mm": 217.76189500675272,
+    "act_us": 9.442913481909688
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 95.5,
+    "collision_pct": 2.5,
+    "timeout_pct": 2.0,
+    "steps_to_goal": 73.30366492146597,
+    "min_clearance_mm": 252.4688314388656,
+    "act_us": 15.135354139149113
+   }
+  },
+  "slip": {
+   "policy": {
+    "n": 200,
+    "success_pct": 99.0,
+    "collision_pct": 1.0,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 43.39393939393939,
+    "min_clearance_mm": 500.0,
+    "act_us": 20.100786699781622
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 98.5,
+    "collision_pct": 1.5,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 42.66497461928934,
+    "min_clearance_mm": 500.0,
+    "act_us": 8.620093034630115
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 98.5,
+    "collision_pct": 1.5,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 42.66497461928934,
+    "min_clearance_mm": 500.0,
+    "act_us": 13.152293375451327
+   }
+  },
+  "combined": {
+   "policy": {
+    "n": 200,
+    "success_pct": 81.0,
+    "collision_pct": 2.0,
+    "timeout_pct": 17.0,
+    "steps_to_goal": 58.27160493827161,
+    "min_clearance_mm": 264.28505248704175,
+    "act_us": 21.7312571622435
+   },
+   "baseline": {
+    "n": 200,
+    "success_pct": 50.0,
+    "collision_pct": 50.0,
+    "timeout_pct": 0.0,
+    "steps_to_goal": 41.1,
+    "min_clearance_mm": 218.24411971046194,
+    "act_us": 8.595142028289047
+   },
+   "apf": {
+    "n": 200,
+    "success_pct": 71.0,
+    "collision_pct": 2.5,
+    "timeout_pct": 26.5,
+    "steps_to_goal": 53.17605633802817,
+    "min_clearance_mm": 253.7533280809426,
+    "act_us": 16.36432474808565
+   }
+  }
+ },
+ "policy_params": 11078,
+ "decision_us": 12.900586000796466,
+ "eval_secs": 80.1,
+ "checkpoint": "policy.pt",
+ "training": {
+  "steps": 19998720,
+  "updates": 1953,
+  "updates_planned": 1953,
+  "envs": 80,
+  "workers": 3,
+  "device": "cpu",
+  "wall_secs": 11486.8,
+  "active_secs_estimate": 6887.6,
+  "final_training_stats": {
+   "success_pct": 93.61702127659575,
+   "collision_pct": 1.4184397163120568,
+   "timeout_pct": 4.964539007092198,
+   "std": 0.09360092878341675
+  }
+ }
+}

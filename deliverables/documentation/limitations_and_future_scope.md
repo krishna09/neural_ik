@@ -34,7 +34,8 @@ than they are. Numbers come from `results/evaluation_metrics.csv` (2,000 held-ou
 | **Not every episode succeeds.** | Team agent, "everything at once" scenario, 200 unseen episodes: 84.0 % reached the goal, 2.0 % collided, 14.0 % timed out. | The agent reduces collisions sharply (the straight path collides in 50.0 %) but can still get stuck. A fallback (another IK branch, a sampling planner) is needed. |
 | **Simple world model.** | Sphere obstacles (static, appearing, drifting); faults modelled as gain and bias errors and a sudden joint slip; kinematic motion. | Real obstacles, contact dynamics and sensor noise are not represented. |
 | **Perfect state.** | The policy observes obstacle positions and joint angles exactly. | Perception and estimation errors are not covered. |
-| **Training is not bit-reproducible.** | A reproduction with the same code and settings was trained on a CPU for these deliverables. | Its rates differ from the team's agent; both are reported side by side in `results/level2_evaluation.csv`. |
+| **Training is not bit-reproducible.** | A reproduction with the same code and settings (20 M steps, CPU) reached 81.0 % / 2.0 % / 17.0 % in the same scenario, within 3 points of the team's agent in every scenario. | Expect a few points of spread between training runs; both agents are reported side by side in `results/level2_evaluation.csv`. |
+| **The gain over the potential field is scenario-dependent.** | Drifting obstacles: potential field 95.5 % reached, agents 94.5 % (team) and 95.0 % (reproduction). Joint slip only: all controllers 98.5–99.0 %. | The agent's advantage comes from getting stuck less often when obstacles block the path (static and combined scenarios), not from every situation. |
 
 ## 4. What a space manipulator adds
 

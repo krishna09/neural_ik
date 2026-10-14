@@ -50,7 +50,7 @@ in PyBullet simulation.
 | Classical DLS from the home pose | 2.6 % valid; 22.8 % self-collision; 39.3 % limit violations | success rate and violation rates | measured |
 | Collision classifier | 98.37 % accuracy (95.9 % precision, 94.1 % recall) | classification accuracy on 30,000 held-out poses | measured, `eval_summary.json` |
 | Level 2 agent, "everything at once" | 84.0 % reached, 2.0 % collided, 14.0 % stuck (straight path: 50.0 % collided) | episode outcome rates, 200 unseen episodes | team's recorded evaluation |
-| Level 2 reproduction | <!-- L2_REPRO --> | same | trained and measured here, `level2_evaluation.csv` |
+| Level 2 reproduction (same code, 20 M steps, CPU) | 81.0 % reached, 2.0 % collided, 17.0 % stuck; within 3 points of the team's agent in every scenario | same | trained and measured here, `level2_evaluation.csv` |
 
 **How to read the metrics.** *Pose error* is measured in millimetres and degrees after running the
 predicted joints through PyBullet's forward kinematics. *Joint-space error* (difference between

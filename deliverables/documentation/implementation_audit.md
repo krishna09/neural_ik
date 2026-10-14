@@ -74,7 +74,10 @@ The notes pasted into the request were based on an older view of the repository.
 - **All methods on 2,000 identical held-out targets** (`results/evaluation_metrics.csv`):
   - network + LM: 100 % within 1 mm and 1° for warm, home-pose and random seeds. 0 % self-collision, 0 % limit violations.
   - LM without the network also reaches 100 %. From the home pose it needs random restarts for 57 % of targets instead of 19 %, and is slower (50.5 vs 37.8 ms per target; 1.18 vs 0.59 ms batched).
-- **Level 2 reproduction**: see `results/level2_evaluation.csv` (filled in by `pipeline/evaluate_level2_repro.py`).
+- **Level 2 reproduction** (`results/level2_evaluation.csv`, `pipeline/evaluate_level2_repro.py`): same code and settings,
+  19,998,720 PPO steps on a 4-core CPU (about 115 min of active training). "Everything at once", 200 unseen episodes:
+  81.0 % reached, 2.0 % collided, 17.0 % stuck (team agent: 84.0 / 2.0 / 14.0). Within 3 points of the team's agent
+  in all six scenarios; the straight-path and potential-field baselines reproduce the team's numbers exactly.
 
 **Recorded by the team** (cited with source, not re-run):
 
