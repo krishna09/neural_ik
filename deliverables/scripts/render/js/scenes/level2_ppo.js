@@ -18,7 +18,11 @@ const CTRL = [
 export default async function (ctx) {
   const model = await robotModel(ctx);
   const L2 = await ctx.data('level2');
-  const { D, c } = timeline(ctx, { loop: 1.6, ep0: 8.6, res: 24.4, sps: 9 }, 32);
+  // clip timing: the results appear once all three recorded episodes have finished (+1.8 s to read the outcomes);
+  // the video passes its own cues
+  const nMax = Math.max(...Object.values(L2.episodes).map((e) => e.frames.length - 1));
+  const res0 = Math.max(24.4, 8.6 + 0.6 + nMax / 9 + 1.8);
+  const { D, c } = timeline(ctx, { loop: 1.6, ep0: 8.6, res: res0, sps: 9 }, res0 + 7.6);
   const W0 = 584, H0 = 450, X0 = 72, Y0 = 250, GAP = 12;
   const views = CTRL.map((ct, i) => {
     const st = new Studio({ floorRadius: 1.3 });
@@ -49,6 +53,10 @@ export default async function (ctx) {
       (<span class="mono">media/data/…_meta_n200.json</span>). Policy: ${num(L2.team_params, 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parameters, ${num(L2.team_decision_us, 1)} µs per decision on one CPU core.
       ${L2.repro_eval ? `Reproduction in this environment (CPU, 20 M steps): ${num(L2.repro_eval.scenarios.combined.policy.success_pct, 1)} % success / ${num(L2.repro_eval.scenarios.combined.policy.collision_pct, 1)} % collisions.` : ''}</div>`,
     { left: '72px', top: '830px' });
+  const epNote = el(`<div style="font-size:18px;line-height:1.5;color:var(--muted);width:1776px">
+      Recorded episode: evaluation seed <span class="mono">${L2.seed}</span>, "everything at once". The agent shown is the reproduction
+      trained for this presentation with the project's <span class="mono">level2/</span> code (the team's agent file is not in the repository).</div>`,
+    { left: '72px', top: '846px' });
   const cap = captions(ctx, [
     [c.loop, c.ep0, 'The agent learns by trial and error in simulation, rewarded for progress and safety'],
     [c.ep0, c.res, 'Same start, goal, obstacles and joint slip for every controller'],
@@ -160,6 +168,7 @@ export default async function (ctx) {
       });
       renderViews(list);
       document.getElementById('gl').style.opacity = ea.toFixed(3);
+      show(epNote, ea);
       const ra = seg(t, c.res, c.res + 1.0, smooth);
       drawRes(ra);
       show(resNote, seg(t, c.res + 1.5, c.res + 2.3, smooth));
