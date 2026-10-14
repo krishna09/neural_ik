@@ -69,7 +69,7 @@ export default async function (ctx) {
       // robot: seed -> (network guess shown as ghost) -> final answer
       const uN = seg(u, 0.14, 0.24, smooth), uR = seg(u, 0.42, 0.62, easeInOut);
       ghost.setQ(cs.network.q);
-      ghost.setOpacity(uN * (1 - 0.6 * seg(u, 0.75, 0.85)) * ta);
+      ghost.setOpacity(uN * (1 - 0.7 * seg(u, 0.45, 0.62, smooth)) * ta);   // fades while the solver moves the arm
       robot.setQ(lerpArr(cs.seed, cs.hybrid.q, uR));                // the arm itself only executes the verified answer
       robot.clearHighlights();
       const okGlow = seg(u, 0.66, 0.74, smooth) * (1 - seg(u, 0.9, 0.98, smooth));
@@ -84,7 +84,8 @@ export default async function (ctx) {
       miss.material.transparent = true;
       const mid = ge.clone().add(new THREE.Vector3(...cs.target_pos)).multiplyScalar(0.5);
       setHTML(missTag, `${num(cs.network.pos_err_mm, 1)} mm`);
-      place(missTag, project(mid, st.camera)?.map((v, k) => v + (k === 0 ? 70 : -24)), ma);
+      const pm = project(mid, st.camera);                           // label on the side away from the nearest panel
+      place(missTag, pm?.map((v, k) => v + (k === 0 ? (pm[0] > 960 ? -110 : 70) : -24)), ma);
       // panels
       show(inp, seg(t, 1.0, 1.8, smooth));
       setHTML(inp.querySelector('#iv'), ivHTML(cs));
@@ -98,7 +99,7 @@ export default async function (ctx) {
         badge(f.limit_violation ? 'bad' : 'ok', f.limit_violation ? 'limit violation' : 'inside joint limits')];
       setHTML(steps.querySelector('#b3'), u > 0.68 ? checks.join('') : '');
       ['#s1', '#s2', '#s3'].forEach((id, k) => steps.querySelector(id).classList.toggle('dim', u < [0.14, 0.42, 0.66][k]));
-      st.orbit([0.22, 0.0, 0.36], 2.2, lerp(-48, -18, t / D), 15, st.camera, [170, 20]);
+      st.orbit([0.22, 0.0, 0.36], 2.2, lerp(-48, -18, t / D), 15, st.camera, [-40, 40]);   // arm left of the results panel
       render(st);
       cap(t);
     },
