@@ -1,0 +1,16 @@
+device: cpu
+[xarm6] dof=6  training examples=16784
+training collision classifier...
+  [collision-net] epoch 1/15  val_acc=0.847
+  [collision-net] epoch 6/15  val_acc=0.965
+  [collision-net] epoch 11/15  val_acc=0.971
+  [collision-net] epoch 15/15  val_acc=0.974
+training IK network (with collision-aware loss)...
+  [ik-net] epoch 1/60  val_mse=0.25559
+  [ik-net] epoch 11/60  val_mse=0.04760
+  [ik-net] epoch 21/60  val_mse=0.04180
+  [ik-net] epoch 31/60  val_mse=0.03826
+  [ik-net] epoch 41/60  val_mse=0.03760
+  [ik-net] epoch 51/60  val_mse=0.03609
+  [ik-net] epoch 60/60  val_mse=0.03476
+saved models/xarm6_ik_net.pt and models/xarm6_collision_net.pt

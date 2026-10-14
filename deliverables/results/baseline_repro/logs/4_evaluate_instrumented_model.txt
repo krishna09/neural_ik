@@ -1,0 +1,26 @@
+
+=== xarm6 (6DOF) - 200 held-out targets ===
+
+-- Neural IK alone --
+  mean position error:     133.84 mm
+  mean orientation error:  33.69 deg
+  self-collision rate:     0.0%
+  joint-limit violation:   21.0%
+  mean inference time:     0.119 ms
+
+-- Classical IK (PyBullet DLS, 100 iters, same warm start) --
+  mean position error:     5.07 mm
+  mean orientation error:  0.04 deg
+  self-collision rate:     9.0%
+  joint-limit violation:   2.5%
+  mean inference time:     0.296 ms
+
+-- Hybrid: neural warm start + 5-iter DLS refinement --
+  mean position error:     46.31 mm
+  mean orientation error:  0.77 deg
+  self-collision rate:     7.0%
+  joint-limit violation:   21.5%
+  mean inference time:     0.183 ms
+
+[stderr]
+pybullet build time: Oct 14 2026 08:32:50

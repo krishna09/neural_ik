@@ -1,0 +1,23 @@
+method,seed_mode,n_targets,pos_mean_mm,pos_median_mm,pos_p95_mm,orn_mean_deg,orn_median_deg,orn_p95_deg,self_collision_pct,limit_violation_pct,within_1mm_pct,within_10mm_pct,within_50mm_pct,success_1mm_1deg_pct,success_10mm_5deg_pct,success_50mm_15deg_pct,time_ms_mean,time_ms_median,won_network_pct,won_seed_pct,won_restart_pct,won_retry_pct,notes
+residual_mlp,warm (run seeds),25090,23.0586,20.2527,48.4124,5.7584,5.1965,11.5689,0.0,0.3707,0.012,11.2914,95.5082,0.0,6.5963,94.4281,nan,nan,,,,,whole collision-free test split of the best run
+baseline_mlp,warm,2000,113.6264,98.8965,243.8076,30.6207,28.7094,58.8536,0.0,0.4,0.0,0.1,13.8,0.0,0.0,3.15,0.0699,0.0613,,,,,
+residual_mlp,warm,2000,22.9024,19.6415,50.2127,5.7713,5.1405,11.7659,0.0,0.3,0.0,11.0,94.95,0.0,6.8,93.85,0.9325,0.8993,,,,,
+classical_dls,warm,2000,4.3224,2.9368,13.6207,0.0387,0.0234,0.1382,0.35,2.35,25.7,89.0,100.0,25.65,87.25,97.5,0.2715,0.26,,,,,"PyBullet DLS, 100 iterations, seed as warm start"
+baseline_hybrid,warm,2000,41.5407,37.211,83.1482,0.7078,0.5676,1.7399,0.6,1.95,0.0,2.25,71.3,0.0,2.2,69.75,0.0885,0.0793,,,,,network + 5 DLS iterations
+hybrid_dls,warm,2000,12.3462,11.1172,25.7174,0.2138,0.1498,0.6524,0.0,0.7,0.1,42.25,99.9,0.1,42.0,99.25,0.9852,0.9611,,,,,network + 5 DLS iterations
+lm_only,warm,2000,0.0002,0.0001,0.0008,0.0094,0.0,0.0394,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,8.6918,8.3006,0.0,99.95,0.05,0.0,"LM from the seed only (30 it, 16 restarts, collision-free retry); batched 0.109 ms/target"
+hybrid_lm,warm,2000,0.0001,0.0001,0.0003,0.0096,0.0,0.0391,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,12.9215,11.5441,50.1,49.85,0.05,0.0,"network + LM (30 it, 16 restarts, collision-free retry); batched 0.107 ms/target"
+baseline_mlp,zero,2000,414.9787,383.4232,788.9867,123.358,127.6217,174.4816,0.0,0.0,0.0,0.0,0.05,0.0,0.0,0.0,0.0722,0.062,,,,,
+residual_mlp,zero,2000,128.8033,84.4476,408.3714,44.1781,30.7624,133.6073,6.35,14.5,0.0,0.85,26.45,0.0,0.1,11.25,1.0461,0.9767,,,,,
+classical_dls,zero,2000,49.4059,26.1243,154.9504,0.5139,0.2022,2.2061,22.8,39.25,3.9,25.4,67.55,2.55,15.5,45.65,0.2717,0.2602,,,,,"PyBullet DLS, 100 iterations, seed as warm start"
+baseline_hybrid,zero,2000,351.1609,326.3333,671.9976,5.403,4.3738,13.2828,15.4,7.4,0.0,0.0,0.25,0.0,0.0,0.25,0.0933,0.0788,,,,,network + 5 DLS iterations
+hybrid_dls,zero,2000,84.3688,58.0671,249.8626,1.5796,0.8281,5.7343,16.2,22.15,0.0,2.1,42.25,0.0,2.1,37.85,0.89,0.8682,,,,,network + 5 DLS iterations
+lm_only,zero,2000,0.0039,0.0001,0.0006,0.0099,0.0,0.0393,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,50.4971,62.2061,0.0,40.8,56.95,2.25,"LM from the seed only (30 it, 16 restarts, collision-free retry); batched 1.177 ms/target"
+hybrid_lm,zero,2000,0.0029,0.0001,0.0005,0.0098,0.0,0.0394,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,37.8184,31.8412,57.8,21.65,18.95,1.6,"network + LM (30 it, 16 restarts, collision-free retry); batched 0.592 ms/target"
+baseline_mlp,random,2000,486.929,454.2893,948.9679,127.1486,132.8059,175.3299,0.6,1.2,0.0,0.0,0.35,0.0,0.0,0.0,0.0693,0.0617,,,,,
+residual_mlp,random,2000,158.8844,95.463,509.5344,54.1285,39.6462,150.5627,12.4,31.5,0.0,0.55,24.0,0.0,0.05,10.15,0.9839,0.945,,,,,
+classical_dls,random,2000,40.5146,20.4347,137.2536,0.3651,0.143,1.4173,33.05,46.55,8.3,32.85,72.85,3.65,16.7,41.0,0.2974,0.2629,,,,,"PyBullet DLS, 100 iterations, seed as warm start"
+baseline_hybrid,random,2000,361.1446,330.6634,698.7828,4.9753,4.1454,11.605,22.8,30.2,0.0,0.0,0.6,0.0,0.0,0.6,0.0905,0.0792,,,,,network + 5 DLS iterations
+hybrid_dls,random,2000,110.4564,76.3663,312.5148,1.8475,1.0877,5.9258,22.0,36.55,0.0,2.1,31.15,0.0,2.0,27.15,0.9469,0.9235,,,,,network + 5 DLS iterations
+lm_only,random,2000,0.0041,0.0001,0.0005,0.0113,0.0,0.0416,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,53.0482,63.9702,0.0,30.75,67.35,1.9,"LM from the seed only (30 it, 16 restarts, collision-free retry); batched 1.302 ms/target"
+hybrid_lm,random,2000,0.0033,0.0001,0.0006,0.0105,0.0,0.0398,0.0,0.0,100.0,100.0,100.0,100.0,100.0,100.0,48.2235,37.6853,39.7,17.7,40.8,1.8,"network + LM (30 it, 16 restarts, collision-free retry); batched 1.021 ms/target"

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neural IK renderer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/stage.css">
+<script type="importmap">
+{ "imports": {
+  "three": "/ui/static/vendor/three/build/three.module.js",
+  "three/addons/": "/ui/static/vendor/three/examples/jsm/",
+  "vendor/": "/deliverables/scripts/render/vendor/"
+} }
+</script>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div id="uiback"></div>
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <div id="ui"></div>
+</div>
+<script type="module" src="js/stage.js"></script>
+</body>
+</html>

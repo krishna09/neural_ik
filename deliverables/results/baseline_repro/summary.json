@@ -1,0 +1,99 @@
+{
+ "robot": "xarm6",
+ "samples": 20000,
+ "generator_seed": 0,
+ "epochs": 60,
+ "collision_epochs": 15,
+ "torch_seed_instrumented": 0,
+ "dataset": {
+  "n": 20000,
+  "n_colliding": 3216,
+  "generation_secs": 1.9
+ },
+ "split_instrumented": {
+  "n_dataset": 20000,
+  "n_colliding": 3216,
+  "n_ik_rows": 16784,
+  "n_ik_train": 14267,
+  "n_ik_val": 2517,
+  "n_acc_rows": 1000
+ },
+ "collision_classifier_val": {
+  "n_val": 3000,
+  "n_val_colliding": 520,
+  "accuracy_pct": 97.46666666666667,
+  "precision_pct": 93.19066147859922,
+  "recall_pct": 92.11538461538461
+ },
+ "final_epoch": {
+  "phase": "ik",
+  "epoch": 60,
+  "train_loss": 0.04654082137026957,
+  "train_fit_mse": 0.028930825680228218,
+  "train_collision_penalty": 0.3521998998309885,
+  "val_mse": 0.035145639628171924,
+  "val_pos_mean_mm": 114.76565953791567,
+  "val_pos_median_mm": 99.468613442249,
+  "val_orn_mean_deg": 30.587502727137995,
+  "val_within_50mm_pct": 15.299999999999999,
+  "secs": 0.3546884059906006
+ },
+ "seconds": {
+  "generate": 2.06219744682312,
+  "train_unchanged": 29.88513994216919,
+  "train_instrumented": 26.482001543045044
+ },
+ "evaluate_py_unchanged_model": {
+  "Neural IK alone": {
+   "pos_mean_mm": 123.17,
+   "orn_mean_deg": 33.02,
+   "self_collision_pct": 0.0,
+   "limit_violation_pct": 22.5,
+   "time_ms": 0.327
+  },
+  "Classical IK (PyBullet DLS, 100 iters, same warm start)": {
+   "pos_mean_mm": 5.07,
+   "orn_mean_deg": 0.04,
+   "self_collision_pct": 9.0,
+   "limit_violation_pct": 2.5,
+   "time_ms": 0.297
+  },
+  "Hybrid: neural warm start + 5-iter DLS refinement": {
+   "pos_mean_mm": 45.04,
+   "orn_mean_deg": 0.77,
+   "self_collision_pct": 7.5,
+   "limit_violation_pct": 22.5,
+   "time_ms": 0.167
+  }
+ },
+ "evaluate_py_instrumented_model": {
+  "Neural IK alone": {
+   "pos_mean_mm": 133.84,
+   "orn_mean_deg": 33.69,
+   "self_collision_pct": 0.0,
+   "limit_violation_pct": 21.0,
+   "time_ms": 0.119
+  },
+  "Classical IK (PyBullet DLS, 100 iters, same warm start)": {
+   "pos_mean_mm": 5.07,
+   "orn_mean_deg": 0.04,
+   "self_collision_pct": 9.0,
+   "limit_violation_pct": 2.5,
+   "time_ms": 0.296
+  },
+  "Hybrid: neural warm start + 5-iter DLS refinement": {
+   "pos_mean_mm": 46.31,
+   "orn_mean_deg": 0.77,
+   "self_collision_pct": 7.0,
+   "limit_violation_pct": 21.5,
+   "time_ms": 0.183
+  }
+ },
+ "environment": {
+  "python": "3.13.16",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+  "cpu_count": 4,
+  "device": "cpu"
+ }
+}

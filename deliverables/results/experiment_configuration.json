@@ -1,0 +1,206 @@
+{
+ "robot": "xarm6",
+ "urdf": "urdf/xarm/xarm6_robot.urdf",
+ "dof": 6,
+ "joint_limits_deg": [
+  [
+   -360.0,
+   360.0
+  ],
+  [
+   -117.97,
+   120.0
+  ],
+  [
+   -225.0,
+   11.0
+  ],
+  [
+   -360.0,
+   360.0
+  ],
+  [
+   -97.0,
+   180.0
+  ],
+  [
+   -360.0,
+   360.0
+  ]
+ ],
+ "best_run": {
+  "id": "20260928-174703_xarm6",
+  "dataset": "ds_20260928-163059_xarm6_n200000_s0",
+  "model": {
+   "id": "modelset/model_set.py",
+   "file": "modelset/model_set.py",
+   "source": "model_source.py",
+   "sha256": "3cd68aa454a06cb5cb8cdbe80a886d8de18c1879c132c4225c6779501c8a8674",
+   "class": "IKNet",
+   "params": 2050316
+  },
+  "params": {
+   "epochs": 120,
+   "collision_epochs": 15,
+   "cases": 8,
+   "render_every": 100,
+   "test_frac": 0.15,
+   "split_seed": 2024,
+   "pos_tol_mm": 30.0,
+   "early_stop": {
+    "metric": "pct_within",
+    "target_pct": 95.0,
+    "split": "train",
+    "patience": 2
+   },
+   "acc_subset": 2000
+  },
+  "split": {
+   "n_dataset": 200000,
+   "n_test": 30000,
+   "n_test_free": 25090,
+   "n_given_to_train_ik": 170000,
+   "n_ik_rows": 142518,
+   "n_ik_train": 121141,
+   "n_ik_val": 21377,
+   "n_col_train": 144500,
+   "n_col_val": 25500
+  },
+  "train_secs": 718.8,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ "baseline_reproduction": {
+  "robot": "xarm6",
+  "samples": 20000,
+  "generator_seed": 0,
+  "epochs": 60,
+  "collision_epochs": 15,
+  "torch_seed_instrumented": 0,
+  "dataset": {
+   "n": 20000,
+   "n_colliding": 3216,
+   "generation_secs": 1.9
+  },
+  "split_instrumented": {
+   "n_dataset": 20000,
+   "n_colliding": 3216,
+   "n_ik_rows": 16784,
+   "n_ik_train": 14267,
+   "n_ik_val": 2517,
+   "n_acc_rows": 1000
+  },
+  "collision_classifier_val": {
+   "n_val": 3000,
+   "n_val_colliding": 520,
+   "accuracy_pct": 97.46666666666667,
+   "precision_pct": 93.19066147859922,
+   "recall_pct": 92.11538461538461
+  },
+  "final_epoch": {
+   "phase": "ik",
+   "epoch": 60,
+   "train_loss": 0.04654082137026957,
+   "train_fit_mse": 0.028930825680228218,
+   "train_collision_penalty": 0.3521998998309885,
+   "val_mse": 0.035145639628171924,
+   "val_pos_mean_mm": 114.76565953791567,
+   "val_pos_median_mm": 99.468613442249,
+   "val_orn_mean_deg": 30.587502727137995,
+   "val_within_50mm_pct": 15.299999999999999,
+   "secs": 0.3546884059906006
+  },
+  "seconds": {
+   "generate": 2.06219744682312,
+   "train_unchanged": 29.88513994216919,
+   "train_instrumented": 26.482001543045044
+  },
+  "evaluate_py_unchanged_model": {
+   "Neural IK alone": {
+    "pos_mean_mm": 123.17,
+    "orn_mean_deg": 33.02,
+    "self_collision_pct": 0.0,
+    "limit_violation_pct": 22.5,
+    "time_ms": 0.327
+   },
+   "Classical IK (PyBullet DLS, 100 iters, same warm start)": {
+    "pos_mean_mm": 5.07,
+    "orn_mean_deg": 0.04,
+    "self_collision_pct": 9.0,
+    "limit_violation_pct": 2.5,
+    "time_ms": 0.297
+   },
+   "Hybrid: neural warm start + 5-iter DLS refinement": {
+    "pos_mean_mm": 45.04,
+    "orn_mean_deg": 0.77,
+    "self_collision_pct": 7.5,
+    "limit_violation_pct": 22.5,
+    "time_ms": 0.167
+   }
+  },
+  "evaluate_py_instrumented_model": {
+   "Neural IK alone": {
+    "pos_mean_mm": 133.84,
+    "orn_mean_deg": 33.69,
+    "self_collision_pct": 0.0,
+    "limit_violation_pct": 21.0,
+    "time_ms": 0.119
+   },
+   "Classical IK (PyBullet DLS, 100 iters, same warm start)": {
+    "pos_mean_mm": 5.07,
+    "orn_mean_deg": 0.04,
+    "self_collision_pct": 9.0,
+    "limit_violation_pct": 2.5,
+    "time_ms": 0.296
+   },
+   "Hybrid: neural warm start + 5-iter DLS refinement": {
+    "pos_mean_mm": 46.31,
+    "orn_mean_deg": 0.77,
+    "self_collision_pct": 7.0,
+    "limit_violation_pct": 21.5,
+    "time_ms": 0.183
+   }
+  },
+  "environment": {
+   "python": "3.13.16",
+   "torch": "2.14.1+cu130",
+   "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+   "cpu_count": 4,
+   "device": "cpu"
+  }
+ },
+ "common_subset": {
+  "n": 2000,
+  "subset_seed": 2026,
+  "rule": "test rows with dataset index >= 14000",
+  "seed_modes": {
+   "warm": "true joints + N(0, 0.3 rad) (the run's own test seeds)",
+   "zero": "all joints 0 (home pose)",
+   "random": "uniform within joint limits"
+  }
+ },
+ "methods": {
+  "classical_dls": "PyBullet calculateInverseKinematics, maxNumIterations=100, residualThreshold=1e-5",
+  "hybrid_dls": "network output + PyBullet DLS, maxNumIterations=5",
+  "hybrid_lm": {
+   "iters": 30,
+   "restarts": 16,
+   "use_seed": true,
+   "tol_mm": 1.0,
+   "tol_deg": 1.0,
+   "solver": "refine/lm_solver.py (Levenberg-Marquardt, lambda=|e|^2+1e-6)",
+   "device": "cpu"
+  }
+ },
+ "checks": "PyBullet FK pose error, joint limits (after +-360 deg shift), self-collision (URDF_USE_SELF_COLLISION | EXCLUDE_PARENT)",
+ "timing": "single target (batch of 1), one CPU thread, mean over targets; hardware dependent",
+ "environment": {
+  "python": "3.13.16",
+  "torch": "2.14.1+cu130",
+  "pybullet": "3.2.7",
+  "numpy": "2.5.3",
+  "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+  "cpu_count": 4,
+  "cpu_model": "Intel(R) Xeon(R) Processor @ 2.80GHz"
+ },
+ "runtime_secs": 60.7
+}

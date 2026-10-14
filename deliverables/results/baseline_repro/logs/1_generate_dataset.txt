@@ -1,0 +1,5 @@
+[xarm6] generated 20000 samples in 1.9s (3216 colliding, 16.1%)
+saved -> data/xarm6_ik_dataset.npz
+
+[stderr]
+pybullet build time: Oct 14 2026 08:32:50
