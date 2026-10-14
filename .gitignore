@@ -16,3 +16,7 @@ data/*.npz
 # Level 2: weight cache and command-line training runs
 level2/.cache/
 level2/runs/
+
+# generated videos / decks (large)
+media/out/
+media/assets/
