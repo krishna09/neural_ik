@@ -135,7 +135,7 @@ Level 2 is implemented and trained in simulation. A PPO agent outputs a correcti
 It observes 101 numbers: joint state, goal error, end-effector and link positions, and for each obstacle its distance, velocity and a kinematics-aware escape direction. Its reward favours progress, penalises getting close to obstacles, collisions, timeouts and the Level 1 classifier's self-collision risk.
 The policy has 11,078 parameters and needs 17.5 microseconds per decision on one CPU core, in plain NumPy.
 In the hardest scenario, everything at once, over 200 unseen episodes with identical seeds: the agent reached 84.0 % of goals with 2.0 % collisions; the potential field 71.0 % / 2.5 %, and the straight path 50.0 % / 50.0 %. The agent still gets stuck in 14.0 % of episodes.
-
+Reproduction for this presentation (20 M steps on a CPU, same code and settings): 81.0 % reached, 2.0 % collisions on the same scenario, within 3 points of the team's agent in all six scenarios. The straight-path and potential-field numbers reproduce exactly. The clip shows this reproduced agent, because the team's agent file is not in the repository.
 Clip: simulations/level2_ppo_rerouting.mp4 (Simulation 10). Source: media/data/l2_20261013-185525_xarm6_meta_n200.json; level2/*.py.
 
 ## Slide 17 · What we achieved, and what is still open

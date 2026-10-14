@@ -12,9 +12,9 @@ in PyBullet simulation.
 
 | Path | What it is |
 |---|---|
-| `presentation/Neural_IK_STP_Team06_Level1.pptx` | 17-slide 16:9 deck, fully editable (theme, layouts, sections). Fade-in builds and slide transitions; 10 embedded simulation clips (each with a poster frame, so the slide still works if a video cannot play); native, editable charts; speaker notes on every slide. |
+| `presentation/Neural_IK_STP_Team06_Level1.pptx` | 17-slide 16:9 deck, fully editable (theme, layouts, sections). Fade-in builds and slide transitions; 8 of the simulation clips embedded on their slides (each with a poster frame, so the slide still works if a video cannot play); native, editable charts; speaker notes on every slide. |
 | `presentation/speaker_notes.md` | The same speaker notes as a document, with sources and code references. About 18–20 minutes. |
-| `video/Neural_IK_STP_Team06_5min.mp4` | <!-- VIDEO_STATS --> |
+| `video/Neural_IK_STP_Team06_5min.mp4` | The 5-minute video: 5 min 01 s, 1920×1080, 30 fps, H.264 + AAC stereo, 47.9 MB. English narration (synthetic voice), English subtitles burned in, quiet ambient music under the voice (−20.8 LUFS integrated, peaks −1 dB). |
 | `video/subtitles.srt` | English subtitles (also burned into the video). |
 | `video/voiceover_script.md` | The narration script, scene by scene, with timings. |
 | `video/scene_timeline.csv` | Start and end time of every scene and narration sentence. |
