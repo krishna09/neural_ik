@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Neural IK Studio</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/mission.css">
   <script type="importmap">
   {
     "imports": {
@@ -16,23 +17,39 @@
 </head>
 <body>
 <header>
-  <div class="brand">Neural IK Studio <small>digital twin · Level 1</small></div>
-  <label class="row" style="flex:0 0 auto;gap:6px;color:var(--text-secondary)">Robot
-    <select id="robot-select" style="width:auto"></select>
+  <div class="brand"><span class="logo" aria-hidden="true"></span>Neural IK Studio</div>
+  <nav class="level-tabs" aria-label="Project levels">
+    <a href="/" class="active">Level 1 · Neural IK</a>
+    <a href="/static/level2.html">Level 2 · DRL re-routing</a>
+    <a href="/static/mission.html" class="mission">Mission · L1 + L2</a>
+    <a href="/static/guide.html" target="_blank" rel="noopener">📘 User Guide</a>
+  </nav>
+  <label class="robot-pick">Robot
+    <select id="robot-select"></select>
   </label>
   <span id="robot-desc" class="hint"></span>
   <div class="spacer"></div>
-  <span class="pill"><span id="job-dot" class="dot"></span><span id="job-text">idle</span></span>
+  <span class="pill"><span id="job-dot" class="dot"></span><span id="job-text">idle</span>
+    <button id="job-stop" class="pill-stop" title="Stop the running job (generation, training or evaluation)" hidden>■ Stop</button></span>
   <span class="pill"><span id="conn-dot" class="dot"></span><span id="conn-text">connecting</span></span>
+  <button id="monitor-toggle" class="ghost" title="Show / hide the System Monitor and live training charts" aria-pressed="false">📈 Monitor</button>
 </header>
 
 <main class="layout">
-  <!-- ===================== LEFT: controls ===================== -->
+  <!-- ===================== LEFT: workflow ===================== -->
   <aside id="left">
-    <details class="panel">
-      <summary><span class="step">⚙</span>Robot &amp; Joints (Manual FK)</summary>
+    <nav id="stepper" aria-label="Workflow steps">
+      <button data-step="p-robot" title="Move the robot by hand (forward kinematics)"><span class="num">⚙</span><span class="lbl">Robot</span></button>
+      <button data-step="p-gen" title="Generate a training dataset"><span class="num">1</span><span class="lbl">Generate</span></button>
+      <button data-step="p-browse" title="Browse every sample of a dataset"><span class="num">2</span><span class="lbl">Browse</span></button>
+      <button data-step="p-train" title="Train an IK network"><span class="num">3</span><span class="lbl">Train</span></button>
+      <button data-step="p-infer" title="Solve IK for a target pose with a trained model"><span class="num">4</span><span class="lbl">Infer</span></button>
+    </nav>
+
+    <details class="panel" id="p-robot">
+      <summary>Robot &amp; joints <small>manual forward kinematics</small></summary>
       <div class="panel-body">
-        <div class="hint">Drag a joint to move the twin. Each move runs PyBullet forward kinematics + self-collision check on the server.</div>
+        <p class="lead">Drag a joint slider to move the twin. Each move runs PyBullet forward kinematics and a self-collision check on the server.</p>
         <div id="jog" class="joints"></div>
         <div class="row">
           <button id="jog-zero">Zero pose</button>
@@ -42,8 +59,8 @@
       </div>
     </details>
 
-    <details class="panel" open>
-      <summary><span class="step">1</span>Generate Dataset</summary>
+    <details class="panel" id="p-gen">
+      <summary>Generate dataset <small>random poses → FK → collision labels</small></summary>
       <div class="panel-body">
         <label class="field">Generator<select id="gen-generator"></select></label>
         <div id="gen-generator-info" class="hint"></div>
@@ -64,23 +81,29 @@
           <div class="splitbar" aria-hidden="true"><span id="gen-split-free"></span><span id="gen-split-col"></span></div>
           <div id="gen-split-info" class="hint"></div>
         </div>
-        <label class="field">Slow motion (ms per sample, 0 = full speed)
-          <input id="gen-delay" type="number" min="0" max="500" step="5" value="0">
-        </label>
-        <button id="gen-btn" class="primary">Generate dataset</button>
-        <div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <label class="field">Slow motion (ms per sample, 0 = full speed)
+            <input id="gen-delay" type="number" min="0" max="500" step="5" value="0">
+          </label>
+        </details>
+        <button id="gen-btn" class="primary block">Generate dataset</button>
+        <div class="progress-wrap">
           <div class="progress-label"><span id="gen-label">—</span><span id="gen-pct"></span></div>
           <div class="progress"><div id="gen-bar"></div></div>
         </div>
         <dl class="kv" id="gen-kv"></dl>
-        <div class="hint">The base generator runs <code>generate_dataset.generate()</code> unchanged; generators in <code>datagen/</code> are alternatives. Every run is saved as a new library entry in <code>ui/workspace/library/datasets/</code> – nothing is overwritten.</div>
+        <details class="more">
+          <summary>How this works</summary>
+          <div class="hint">The base generator runs <code>generate_dataset.generate()</code> unchanged; generators in <code>datagen/</code> are alternatives. Every run is saved as a new library entry in <code>ui/workspace/library/datasets/</code> – nothing is overwritten.</div>
+        </details>
       </div>
     </details>
 
-    <details class="panel" open>
-      <summary><span class="step">2</span>Dataset Browser (Every Sample)</summary>
+    <details class="panel" id="p-browse">
+      <summary>Dataset browser <small>step through every sample</small></summary>
       <div class="panel-body">
-        <select id="ds-src"></select>
+        <label class="field">Dataset<select id="ds-src"></select></label>
         <div id="ds-info" class="hint">—</div>
         <input id="ds-slider" type="range" min="0" max="0" value="0">
         <div class="row">
@@ -97,10 +120,10 @@
       </div>
     </details>
 
-    <details class="panel" open>
-      <summary><span class="step">3</span>Train Model</summary>
+    <details class="panel" id="p-train">
+      <summary>Train model <small>collision net + IK net</small></summary>
       <div class="panel-body">
-        <label class="field">Training dataset (library)<select id="tr-ds"></select></label>
+        <label class="field">Training dataset<select id="tr-ds"></select></label>
         <div class="field">Model (network architecture)
           <div class="row">
             <select id="tr-model"></select>
@@ -109,12 +132,8 @@
         </div>
         <div id="tr-model-info" class="hint"></div>
         <div class="grid2">
-          <label class="field">Held-out test split (%)<input id="tr-test" type="number" min="0" max="50" value="15"></label>
           <label class="field" title="With automatic stopping on, this is the maximum">IK epochs (max)<input id="tr-epochs" type="number" min="1" value="60"></label>
           <label class="field">Collision-net epochs<input id="tr-cepochs" type="number" min="1" value="15"></label>
-          <label class="field">Tracked cases (images)<input id="tr-cases" type="number" min="1" max="64" value="8"></label>
-          <label class="field">Render every N epochs<input id="tr-every" type="number" min="1" value="5"></label>
-          <label class="field">Live samples / s<input id="tr-hz" type="number" min="1" max="20" value="6"></label>
         </div>
         <div class="split-box" id="acc-box">
           <div class="split-head"><span>Accuracy target &amp; automatic stop</span></div>
@@ -137,25 +156,37 @@
           </div>
           <div id="es-info" class="hint"></div>
         </div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <div class="grid2">
+            <label class="field">Held-out test split (%)<input id="tr-test" type="number" min="0" max="50" value="15"></label>
+            <label class="field">Tracked cases (images)<input id="tr-cases" type="number" min="1" max="64" value="8"></label>
+            <label class="field">Render every N epochs<input id="tr-every" type="number" min="1" value="5"></label>
+            <label class="field">Live samples / s<input id="tr-hz" type="number" min="1" max="20" value="6"></label>
+          </div>
+        </details>
         <div class="row">
           <button id="tr-btn" class="primary">Train</button>
           <button id="stop-btn" class="danger" disabled>Stop</button>
         </div>
-        <div>
+        <div class="progress-wrap">
           <div class="progress-label"><span>Collision classifier</span><span id="tr-col-label">—</span></div>
           <div class="progress aqua"><div id="tr-col-bar"></div></div>
         </div>
-        <div>
+        <div class="progress-wrap">
           <div class="progress-label"><span>IK network</span><span id="tr-ik-label">—</span></div>
           <div class="progress"><div id="tr-ik-bar"></div></div>
         </div>
         <dl class="kv" id="tr-kv"></dl>
-        <div class="hint">The test split is removed first and never reaches <code>train_ik.main()</code>, which then splits the rest 85 / 15 into train / validation itself. Model, split, metrics and images are saved in <code>ui/workspace/library/runs/&lt;run&gt;/</code>.</div>
+        <details class="more">
+          <summary>How this works</summary>
+          <div class="hint">The test split is removed first and never reaches <code>train_ik.main()</code>, which then splits the rest 85 / 15 into train / validation itself. Model, split, metrics and images are saved in <code>ui/workspace/library/runs/&lt;run&gt;/</code>. Open <b>📈 Monitor</b> in the header for live loss and accuracy charts.</div>
+        </details>
       </div>
     </details>
 
-    <details class="panel" open>
-      <summary><span class="step">4</span>Run Inference</summary>
+    <details class="panel" id="p-infer">
+      <summary>Run inference <small>solve IK for a target pose</small></summary>
       <div class="panel-body">
         <label class="field">Model (library run)<select id="inf-run"></select></label>
         <label class="field">Target pose
@@ -197,16 +228,24 @@
               <option value="dls">PyBullet DLS (evaluate.py)</option>
               <option value="none">None – network only</option>
             </select></label>
-          <label class="field">Iterations<input id="inf-refine" type="number" min="1" max="500" value="30"></label>
-          <label class="field" title="LM only: extra random starting points, used only if the network's start is still outside 1 mm / 1° (e.g. with a zero-pose seed)">Random restarts (LM)<input id="inf-ref-rs" type="number" min="0" max="256" value="16"></label>
         </div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <div class="grid2">
+            <label class="field">Solver iterations<input id="inf-refine" type="number" min="1" max="500" value="30"></label>
+            <label class="field" title="LM only: extra random starting points, used only if the network's start is still outside 1 mm / 1° (e.g. with a zero-pose seed)">Random restarts (LM)<input id="inf-ref-rs" type="number" min="0" max="256" value="16"></label>
+          </div>
+        </details>
         <div class="row">
           <button id="inf-btn" class="primary">Run inference</button>
           <button id="inf-batch" title="Runs 20 random held-out test samples of this run and logs each">×20 test samples</button>
         </div>
         <div id="inf-final"></div>
         <dl class="kv" id="inf-kv"></dl>
-        <div class="hint">Every inference is appended to the run's <code>inference_log.jsonl</code>; its accuracy is shown in Run details.</div>
+        <details class="more">
+          <summary>How this works</summary>
+          <div class="hint">The network predicts joint angles from the target pose and a seed configuration; the optional solver then refines that answer. Every inference is appended to the run's <code>inference_log.jsonl</code>; its accuracy is shown in Run details.</div>
+        </details>
       </div>
     </details>
   </aside>
@@ -222,14 +261,17 @@
         <label class="check"><input type="checkbox" id="show-ghost" checked> Prediction ghost</label>
         <button id="fit-btn">Reset view</button>
       </div>
-      <div id="legend" class="overlay">
-        <span><i style="background:#8fa3b8"></i>Robot (inference: final answer · else truth / current)</span>
-        <span><i style="background:var(--series-2);opacity:.6"></i>Network alone (ghost)</span>
-        <span><i style="background:#e34948;border-radius:50%"></i>Target EE frame</span>
-        <span><i style="background:var(--series-1);border-radius:50%"></i>EE positions: free</span>
-        <span><i style="background:#e66767;border-radius:50%"></i>colliding</span>
-        <span><i style="background:#ff3b3b"></i>Link in self-collision</span>
-      </div>
+      <details id="legend" class="overlay">
+        <summary>Legend</summary>
+        <div class="legend-items">
+          <span><i style="background:#8fa3b8"></i>Robot (inference: final answer · else truth / current)</span>
+          <span><i style="background:var(--series-2);opacity:.6"></i>Network alone (ghost)</span>
+          <span><i style="background:#e34948;border-radius:50%"></i>Target EE frame</span>
+          <span><i style="background:var(--series-1);border-radius:50%"></i>EE positions: free</span>
+          <span><i style="background:#e66767;border-radius:50%"></i>colliding</span>
+          <span><i style="background:#ff3b3b"></i>Link in self-collision</span>
+        </div>
+      </details>
       <div id="loading" class="overlay">Loading robot…</div>
     </div>
 
@@ -241,9 +283,9 @@
         <button class="tab" data-tab="inflog-pane">Inference log</button>
         <button class="tab" data-tab="log-pane">Log</button>
         <div class="spacer"></div>
-        <label class="hint" style="margin-bottom:6px">Run</label>
+        <label class="hint" for="run-select">Run</label>
         <select id="run-select" title="Selected run (model)"></select>
-        <button id="expand-btn" class="icon" title="Enlarge / shrink this panel" style="margin-bottom:5px">⤢</button>
+        <button id="expand-btn" class="icon" title="Enlarge / shrink this panel">⤢</button>
       </div>
       <div id="library-pane" class="tabpane active"></div>
       <div id="details-pane" class="tabpane"></div>
@@ -253,7 +295,7 @@
     </div>
   </section>
 
-  <!-- ===================== RIGHT: monitor ===================== -->
+  <!-- ===================== RIGHT: monitor drawer ===================== -->
   <aside id="right">
     <div class="section-title">System Monitor <small id="gpu-name"></small></div>
     <div class="tiles">
@@ -264,12 +306,6 @@
       <div class="tile"><div class="label">GPU temp / power</div><div class="value" id="t-temp">—</div><div class="sub" id="t-power"></div></div>
       <div class="tile"><div class="label">Job process</div><div class="value" id="t-job">—</div><div class="sub" id="t-job-sub"></div></div>
     </div>
-    <div class="chart"><div class="ctitle"><span>CPU utilisation (%)</span></div><canvas id="c-cpu"></canvas></div>
-    <div class="ctitle" style="padding:0 14px;font-size:12px;color:var(--text-secondary)">Per-core load</div>
-    <div id="cores"></div>
-    <div class="chart"><div class="ctitle"><span>GPU utilisation (%)</span></div><canvas id="c-gpu"></canvas></div>
-    <div class="chart"><div class="ctitle"><span>GPU memory used (GB)</span></div><canvas id="c-vram"></canvas></div>
-    <div class="divider"></div>
     <div class="section-title">Live Training <small id="tr-device"></small></div>
     <div class="chart">
       <div class="ctitle"><span>IK loss (MSE, sin/cos)</span>
@@ -287,6 +323,14 @@
       <canvas id="c-acc"></canvas>
     </div>
     <div class="chart"><div class="ctitle"><span>Live sample EE position error (mm)</span></div><canvas id="c-err"></canvas></div>
+    <details class="more hw">
+      <summary>Hardware history</summary>
+      <div class="chart"><div class="ctitle"><span>CPU utilisation (%)</span></div><canvas id="c-cpu"></canvas></div>
+      <div class="ctitle" style="padding:0 14px;font-size:12px;color:var(--text-secondary)">Per-core load</div>
+      <div id="cores"></div>
+      <div class="chart"><div class="ctitle"><span>GPU utilisation (%)</span></div><canvas id="c-gpu"></canvas></div>
+      <div class="chart"><div class="ctitle"><span>GPU memory used (GB)</span></div><canvas id="c-vram"></canvas></div>
+    </details>
   </aside>
 </main>
 
@@ -306,8 +350,20 @@
   </div>
 </div>
 
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <h3 id="confirm-title">Are you sure?</h3>
+  <div id="confirm-body"></div>
+  <label class="check" id="confirm-check-wrap" hidden><input type="checkbox" id="confirm-check"> <span id="confirm-check-text"></span></label>
+  <div class="confirm-actions">
+    <button id="confirm-no">No</button>
+    <button id="confirm-yes" class="danger-solid">Yes</button>
+  </div>
+</dialog>
+
 <div id="tooltip"></div>
 <div id="toast"></div>
 <script type="module" src="/static/app.js"></script>
+<script type="module" src="/static/shell.js"></script>
+<script type="module" src="/static/resizer.js"></script>
 </body>
 </html>

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neural IK Studio – Level 2</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/mission.css">
+  <link rel="stylesheet" href="/static/level2.css">
+  <script type="importmap">
+  { "imports": { "three": "/static/vendor/three/build/three.module.js", "three/addons/": "/static/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo" aria-hidden="true"></span>Neural IK Studio</div>
+  <nav class="level-tabs" aria-label="Project levels">
+    <a href="/">Level 1 · Neural IK</a>
+    <a href="/static/level2.html" class="active">Level 2 · DRL re-routing</a>
+    <a href="/static/mission.html" class="mission">Mission · L1 + L2</a>
+    <a href="/static/guide.html" target="_blank" rel="noopener">📘 User Guide</a>
+  </nav>
+  <div class="spacer"></div>
+  <span class="pill"><span id="job-dot" class="dot"></span><span id="job-text">idle</span>
+    <button id="job-stop" class="pill-stop" title="Stop the running job (generation, training or evaluation)" hidden>■ Stop</button></span>
+  <span class="pill"><span id="conn-dot" class="dot"></span><span id="conn-text">connecting</span></span>
+</header>
+
+<main class="l2-layout">
+  <!-- ===================== LEFT ===================== -->
+  <aside id="left">
+    <nav id="stepper" class="four" aria-label="Level 2 steps">
+      <button data-step="p-env"><span class="num">1</span><span class="lbl">Environment</span></button>
+      <button data-step="p-train"><span class="num">2</span><span class="lbl">Train agent</span></button>
+      <button data-step="p-play"><span class="num">3</span><span class="lbl">Test scenario</span></button>
+      <button data-step="p-eval"><span class="num">4</span><span class="lbl">Evaluate</span></button>
+    </nav>
+
+    <details class="panel" id="p-env">
+      <summary>Environment <small>the situations the agent must handle</small></summary>
+      <div class="panel-body">
+        <div class="note-box"><b>No dataset step in Level 2.</b> A reinforcement-learning agent is not trained on a prepared dataset:
+          it learns by trying actions in the simulator and receiving rewards, so training <i>is</i> the data generation
+          (millions of simulated steps). This step lets you look at the simulated situations first.</div>
+        <p class="lead">Each episode: the arm must move from a start to a goal configuration (the goal comes from Level 1 IK) while
+          <b>obstacles</b> block the path, a <b>new obstacle appears</b> mid-motion, obstacles <b>drift</b>, a <b>joint slips</b>,
+          and the motors have a <b>gain / bias error</b>.</p>
+        <div class="grid2">
+          <label class="field">Robot
+            <select id="l2-env-robot"><option value="xarm6">xarm6 (6-DOF)</option><option value="kuka_iiwa">kuka_iiwa (7-DOF)</option></select></label>
+          <label class="field">Seed<input id="l2-env-seed" type="number" value="1"></label>
+        </div>
+        <label class="field">Scenario
+          <select id="l2-env-scenario">
+            <option value="combined">Everything: obstacles + sudden obstacle + joint slip</option>
+            <option value="sudden">Sudden obstacle appears on the path</option>
+            <option value="static">Obstacles on the path from the start</option>
+            <option value="moving">Drifting obstacles</option>
+            <option value="slip">Hardware error: sudden joint slip</option>
+          </select></label>
+        <div class="row">
+          <button id="l2-env-show" class="primary">Preview with classical controllers</button>
+          <button id="l2-env-next">Next ▶</button>
+        </div>
+        <p class="hint">Solid robot = potential field (classical obstacle avoidance), orange = straight path (no avoidance).
+          The potential field often gets stuck – that is what the DRL agent learns to fix.</p>
+      </div>
+    </details>
+
+    <details class="panel" id="p-train" open>
+      <summary>Train the re-routing agent <small>PPO · GPU updates, CPU simulation · live 3D view</small></summary>
+      <div class="panel-body">
+        <p class="lead">The agent learns a small correction on top of the straight path to the goal, so it steers around
+          obstacles that appear while it moves and recovers from joint slips and actuator errors.</p>
+        <div class="grid2">
+          <label class="field">Robot
+            <select id="l2-robot"><option value="xarm6">xarm6 (6-DOF)</option><option value="kuka_iiwa">kuka_iiwa (7-DOF)</option></select></label>
+          <label class="field">Training steps
+            <select id="l2-steps">
+              <option value="500000">0.5 M (quick, ~2 min)</option>
+              <option value="2000000">2 M (~6 min)</option>
+              <option value="5000000" selected>5 M (~15 min)</option>
+              <option value="10000000">10 M (~35 min)</option>
+              <option value="20000000">20 M (~75 min, best)</option>
+            </select></label>
+        </div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <div class="grid2">
+            <label class="field">Parallel environments<input id="l2-envs" type="number" min="8" max="256" value="80"></label>
+            <label class="field">Seed<input id="l2-seed" type="number" value="0"></label>
+            <label class="field">Episodes per scenario (final evaluation)<input id="l2-evaln" type="number" min="10" max="300" value="60"></label>
+          </div>
+        </details>
+        <div class="row">
+          <button id="l2-train-btn" class="primary">Train agent</button>
+          <button id="l2-stop-btn" class="danger" disabled>Stop</button>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span id="l2-prog-label">—</span><span id="l2-prog-pct"></span></div>
+          <div class="progress"><div id="l2-prog-bar"></div></div>
+        </div>
+        <dl class="kv" id="l2-train-kv"></dl>
+        <details class="more">
+          <summary>How this works</summary>
+          <div class="hint">PPO (proximal policy optimisation) with a 2 × 64 MLP. 64 PyBullet simulations run in CPU worker
+            processes; the network's training updates run on the GPU. The command sent to the arm is
+            <code>straight-line controller + policy correction</code> (residual RL), so an untrained agent behaves like the
+            baseline and training only has to learn when and how to deviate. Code: <code>level2/</code>.</div>
+        </details>
+      </div>
+    </details>
+
+    <details class="panel" id="p-play">
+      <summary>Test a scenario <small>watch the agent re-route in 3D</small></summary>
+      <div class="panel-body">
+        <label class="field">Agent (policy)<select id="l2-policy"></select></label>
+        <label class="field">Scenario
+          <select id="l2-scenario">
+            <option value="combined">Everything: obstacles + sudden obstacle + joint slip</option>
+            <option value="sudden">Sudden obstacle appears on the path</option>
+            <option value="static">Obstacles on the path from the start</option>
+            <option value="moving">Drifting obstacles</option>
+            <option value="slip">Hardware error: sudden joint slip</option>
+            <option value="mixed">Random mix (as in training)</option>
+          </select></label>
+        <div class="grid2">
+          <label class="field">Scenario seed<input id="l2-seed-play" type="number" value="1"></label>
+          <label class="field">Show
+            <select id="l2-show">
+              <option value="baseline">Agent vs. straight path</option>
+              <option value="apf">Agent vs. potential field</option>
+              <option value="policy">Agent only</option>
+            </select></label>
+        </div>
+        <div class="row">
+          <button id="l2-run" class="primary">Run scenario</button>
+          <button id="l2-next">Next seed ▶</button>
+        </div>
+        <div id="l2-verdict"></div>
+        <div class="split-box">
+          <div class="split-head"><span>Playback</span><span class="hint" id="l2-step-label">—</span></div>
+          <input id="l2-slider" type="range" min="0" max="0" value="0">
+          <div class="row">
+            <button id="l2-play" class="icon">▶ Play</button>
+            <select id="l2-speed" style="flex:0 0 90px"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+          </div>
+          <div id="l2-events" class="hint"></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="panel" id="p-eval">
+      <summary>Evaluate <small>agent vs. baseline on identical scenarios</small></summary>
+      <div class="panel-body">
+        <label class="field">Agent (policy)<select id="l2-policy-eval"></select></label>
+        <label class="field">Episodes per scenario<input id="l2-eval-n" type="number" min="10" max="500" value="100"></label>
+        <div class="row">
+          <button id="l2-eval-btn" class="primary">Run evaluation</button>
+          <button id="l2-eval-stop" class="danger" disabled>Stop</button>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span id="l2-eval-label">—</span><span id="l2-eval-pct"></span></div>
+          <div class="progress"><div id="l2-eval-bar"></div></div>
+        </div>
+        <p class="lead">Each scenario is run with the same seeds for the trained agent and two classical baselines:
+          the <b>straight path</b> (Level 1 IK goal + straight joint-space motion, no obstacle awareness) and an
+          <b>artificial potential field</b> (straight path + repulsion from obstacles). Results appear in the <b>Results</b> tab below.</p>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ===================== CENTER ===================== -->
+  <section id="center">
+    <div id="viewport-wrap">
+      <div id="viewport"></div>
+      <div id="hud" class="overlay"><div class="title" id="hud-title">Level 2 · real-time re-routing</div><div class="lines" id="hud-lines">Train an agent or pick one, then run a scenario.</div></div>
+      <div id="view-tools" class="overlay">
+        <label class="check" title="While an agent trains, replay one episode of the current agent every few updates"><input type="checkbox" id="l2-follow" checked> Follow live job</label>
+        <label class="check"><input type="checkbox" id="l2-trails" checked> End-effector paths</label>
+        <label class="check"><input type="checkbox" id="l2-goal" checked> Goal pose</label>
+        <button id="fit-btn">Reset view</button>
+      </div>
+      <details id="legend" class="overlay" open>
+        <summary>Legend</summary>
+        <div class="legend-items">
+          <span><i style="background:#8fa3b8"></i>Agent (DRL policy) – or potential field in Environment preview</span>
+          <span><i style="background:#d95926;opacity:.7"></i>Comparison: straight path / potential field</span>
+          <span><i style="background:#2bb673;opacity:.6"></i>Goal pose (from Level 1 IK)</span>
+          <span><i style="background:#e5534b;border-radius:50%;opacity:.7"></i>Obstacle</span>
+          <span><i style="background:#fab219;border-radius:50%"></i>Just appeared</span>
+        </div>
+      </details>
+      <div id="loading" class="overlay">Loading robot…</div>
+    </div>
+
+    <div id="bottom">
+      <div class="tabs">
+        <button class="tab active" data-tab="pol-pane">Agents</button>
+        <button class="tab" data-tab="curve-pane">Training curves</button>
+        <button class="tab" data-tab="res-pane">Results</button>
+        <button class="tab" data-tab="log-pane">Log</button>
+      </div>
+      <div id="pol-pane" class="tabpane active"></div>
+      <div id="curve-pane" class="tabpane"></div>
+      <div id="res-pane" class="tabpane"></div>
+      <div id="log-pane" class="tabpane"><pre id="log"></pre></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <h3 id="confirm-title">Are you sure?</h3>
+  <div id="confirm-body"></div>
+  <div class="confirm-actions">
+    <button id="confirm-no">No, keep it</button>
+    <button id="confirm-yes" class="danger-solid">Yes, delete</button>
+  </div>
+</dialog>
+<div id="toast"></div>
+<script type="module" src="/static/level2.js"></script>
+<script type="module" src="/static/resizer.js"></script>
+</body>
+</html>

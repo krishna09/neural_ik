@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neural IK Studio – Mission</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/level2.css">
+  <link rel="stylesheet" href="/static/mission.css">
+  <script type="importmap">
+  { "imports": { "three": "/static/vendor/three/build/three.module.js", "three/addons/": "/static/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo" aria-hidden="true"></span>Neural IK Studio</div>
+  <nav class="level-tabs" aria-label="Project levels">
+    <a href="/">Level 1 · Neural IK</a>
+    <a href="/static/level2.html">Level 2 · DRL re-routing</a>
+    <a href="/static/mission.html" class="active mission">Mission · L1 + L2</a>
+    <a href="/static/guide.html" target="_blank" rel="noopener">📘 User Guide</a>
+  </nav>
+  <div class="spacer"></div>
+  <span class="pill"><span id="conn-dot" class="dot on"></span><span>server</span></span>
+</header>
+
+<main class="l2-layout">
+  <aside id="left">
+    <div class="m-head">
+      <h2>Mission: reach a target pose safely</h2>
+      <p class="lead">The full project in one run: <b>Level 1</b> solves IK for the target, the path is estimated and checked,
+        then the <b>Level 2</b> agent moves the arm there while avoiding moving / sudden obstacles and self-collision.</p>
+    </div>
+    <div class="panel-body">
+      <div class="grid2">
+        <label class="field">Level 2 agent (movement)<select id="m-agent"></select></label>
+        <label class="field">Level 1 run (IK)<select id="m-l1"></select></label>
+      </div>
+      <div class="grid2">
+        <label class="field">Obstacles &amp; errors
+          <select id="m-scenario">
+            <option value="dynamic">Dynamic: drifting + sudden obstacles + joint slip</option>
+            <option value="combined">Static + sudden obstacles + joint slip</option>
+            <option value="sudden">Sudden obstacle only</option>
+            <option value="static">Obstacles from the start</option>
+            <option value="slip">Joint slip only (no obstacles)</option>
+            <option value="free">Free space (IK + motion only)</option>
+          </select></label>
+        <label class="field">Target
+          <select id="m-target">
+            <option value="random">Random reachable pose</option>
+            <option value="custom">Custom position + orientation</option>
+          </select></label>
+      </div>
+      <div id="m-custom" class="grid3" hidden>
+        <label class="field">x (m)<input id="m-x" type="number" step="0.01" value="0.35"></label>
+        <label class="field">y (m)<input id="m-y" type="number" step="0.01" value="0.15"></label>
+        <label class="field">z (m)<input id="m-z" type="number" step="0.01" value="0.35"></label>
+        <label class="field">roll (°)<input id="m-r" type="number" step="5" value="180"></label>
+        <label class="field">pitch (°)<input id="m-p" type="number" step="5" value="0"></label>
+        <label class="field">yaw (°)<input id="m-yaw" type="number" step="5" value="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field">Mission seed<input id="m-seed" type="number" value="1"></label>
+        <label class="field">Show beside the agent
+          <select id="m-cmp"><option value="baseline">Straight path (no avoidance)</option><option value="apf">Potential field</option><option value="none">Nothing</option></select></label>
+      </div>
+      <div class="row">
+        <button id="m-run" class="primary">▶ Run mission</button>
+        <button id="m-next">Next ▶</button>
+      </div>
+
+      <ol id="pipeline" class="pipeline">
+        <li data-k="target"><span class="st"></span><div><b>1 · Target pose</b><div class="d">—</div></div></li>
+        <li data-k="ik"><span class="st"></span><div><b>2 · Solve IK (Level 1)</b><div class="d">—</div></div></li>
+        <li data-k="plan"><span class="st"></span><div><b>3 · Trajectory estimate</b><div class="d">—</div></div></li>
+        <li data-k="move"><span class="st"></span><div><b>4 · Move &amp; re-route (Level 2)</b><div class="d">—</div></div></li>
+        <li data-k="final"><span class="st"></span><div><b>5 · Final pose check</b><div class="d">—</div></div></li>
+      </ol>
+
+      <div class="split-box">
+        <div class="split-head"><span>Playback</span><span class="hint" id="m-step">—</span></div>
+        <input id="m-slider" type="range" min="0" max="0" value="0">
+        <div class="row">
+          <button id="m-play" class="icon">▶ Play</button>
+          <select id="m-speed" style="flex:0 0 90px"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        </div>
+      </div>
+
+      <div class="split-box">
+        <div class="split-head"><span>Many missions</span></div>
+        <div class="row"><label class="field" style="flex:0 0 120px">Missions<input id="m-n" type="number" min="5" max="100" value="20"></label>
+          <button id="m-batch" style="align-self:flex-end">Run statistics</button></div>
+        <div class="hint">Runs N different missions (seeds) with the same settings and reports IK success and how the agent and the classical controllers do. Results in the <b>Statistics</b> tab.</div>
+      </div>
+    </div>
+  </aside>
+
+  <section id="center">
+    <div id="viewport-wrap">
+      <div id="viewport"></div>
+      <div id="hud" class="overlay"><div class="title" id="hud-title">Mission · Level 1 + Level 2</div><div class="lines" id="hud-lines">Pick the models and press ▶ Run mission.</div></div>
+      <div id="view-tools" class="overlay">
+        <label class="check"><input type="checkbox" id="m-show-plan" checked> Estimated path</label>
+        <label class="check"><input type="checkbox" id="m-show-trail" checked> Executed path</label>
+        <label class="check"><input type="checkbox" id="m-show-goal" checked> IK goal</label>
+        <button id="fit-btn">Reset view</button>
+      </div>
+      <details id="legend" class="overlay" open>
+        <summary>Legend</summary>
+        <div class="legend-items">
+          <span><i style="background:#e34948;border-radius:50%"></i>Target pose</span>
+          <span><i style="background:#2bb673;opacity:.6"></i>IK goal (Level 1)</span>
+          <span><i style="background:#8fa3b8"></i>Agent (Level 2)</span>
+          <span><i style="background:#d95926;opacity:.7"></i>Potential field</span>
+          <span><i style="background:#199e70;opacity:.7"></i>Straight path</span>
+          <span><i style="background:#c9b8ff"></i>Estimated path: ok</span>
+          <span><i style="background:#fab219"></i>near (&lt; 5 cm)</span>
+          <span><i style="background:#ff4d4d"></i>predicted collision</span>
+          <span><i style="background:#3987e5"></i>Executed path</span>
+        </div>
+      </details>
+      <div id="loading" class="overlay" style="display:none">Loading robot…</div>
+    </div>
+    <div id="bottom">
+      <div class="tabs">
+        <button class="tab active" data-tab="rep-pane">Mission report</button>
+        <button class="tab" data-tab="plot-pane">Plots</button>
+        <button class="tab" data-tab="stat-pane">Statistics</button>
+        <button class="tab" data-tab="saved-pane">Saved runs</button>
+      </div>
+      <div id="rep-pane" class="tabpane active"><div class="empty">Run a mission to see the report.</div></div>
+      <div id="plot-pane" class="tabpane"><div class="empty">Run or open a mission to see its plots.</div></div>
+      <div id="stat-pane" class="tabpane"><div class="empty">Run statistics to compare over many missions.</div></div>
+      <div id="saved-pane" class="tabpane"></div>
+    </div>
+  </section>
+</main>
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <h3 id="confirm-title">Delete?</h3>
+  <div id="confirm-body"></div>
+  <div class="confirm-actions"><button id="confirm-no">No, keep it</button><button id="confirm-yes" class="danger-solid">Yes, delete</button></div>
+</dialog>
+<div id="toast"></div>
+<script type="module" src="/static/mission.js"></script>
+<script type="module" src="/static/resizer.js"></script>
+</body>
+</html>

@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neural IK Studio – User Guide</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e1116; --surface-1: #151a21; --surface-2: #1b2129; --surface-3: #252c36;
+    --border: #2a313c; --text: #eef2f7; --text-2: #b3bdcb; --muted: #7f8a9a;
+    --accent: #4b8ff0; --accent-soft: rgba(75,143,240,.14); --good: #2bb673; --warn: #fab219; --bad: #e5534b;
+    --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; height: 56px; display: flex; align-items: center; gap: 14px;
+    padding: 0 20px; background: var(--surface-1); border-bottom: 1px solid var(--border); }
+  .brand { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 9px; }
+  .logo { width: 22px; height: 22px; border-radius: 7px; background: conic-gradient(from 210deg, var(--accent), #7c5cff, #199e70, var(--accent)); }
+  .brand small { color: var(--muted); font-weight: 400; font-size: 12px; }
+  header .spacer { flex: 1; }
+  a { color: #8cb6ff; }
+  a.btn { text-decoration: none; color: var(--text); background: var(--surface-3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 13px; font-size: 13px; font-weight: 600; }
+  a.btn:hover { border-color: var(--muted); }
+  .levels { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .levels button { background: transparent; border: 0; color: var(--muted); font: inherit; font-size: 14px; font-weight: 700;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .levels button:hover { color: var(--text); }
+  .levels button.active { background: var(--accent); color: #fff; }
+  .levels button.active[data-level="l2"] { background: #7c5cff; }
+  .levels button.active[data-level="m"] { background: #1f9d63; }
+  nav#toc button[data-l="m"].active { background: rgba(43,182,115,.16); border-color: rgba(43,182,115,.5); }
+  .wrap { display: block; }
+  nav#toc { position: sticky; top: 56px; z-index: 4; display: flex; gap: 4px; overflow-x: auto; padding: 8px 20px;
+    background: var(--surface-1); border-bottom: 1px solid var(--border); scrollbar-width: thin; }
+  nav#toc button { flex: 0 0 auto; background: transparent; color: var(--text-2); border: 1px solid transparent; border-radius: 999px;
+    padding: 6px 13px; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  nav#toc button:hover { background: var(--surface-2); }
+  nav#toc button.active { background: var(--accent-soft); color: var(--text); border-color: rgba(75,143,240,.4); }
+  nav#toc button[data-l="l2"].active { background: rgba(124,92,255,.16); border-color: rgba(124,92,255,.5); }
+  nav#toc button[hidden] { display: none; }
+  main { padding: 28px 24px 80px; max-width: 1040px; margin: 0 auto; }
+  section { display: none; scroll-margin-top: 130px; }
+  section.active { display: block; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: .2px; }
+  h1 + .sub { color: var(--muted); margin: 0 0 24px; }
+  h2 { font-size: 19px; margin: 32px 0 10px; padding-top: 6px; }
+  h3 { font-size: 16px; margin: 22px 0 6px; color: var(--text); }
+  p, li { color: var(--text-2); }
+  b, strong { color: var(--text); }
+  code { font-family: var(--mono); font-size: 13px; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 1px 5px; color: var(--text); }
+  .math { font-family: "Cambria Math", "STIX Two Math", Cambria, Georgia, serif; font-size: 17px; color: var(--text);
+    background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 12px 16px; margin: 10px 0 14px; overflow-x: auto; }
+  .math .c { font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; color: var(--muted); display: block; margin-top: 4px; }
+  i.v { font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 1.08em; color: var(--text); }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 14px 0; }
+  .card.goal { border-color: rgba(75,143,240,.45); background: linear-gradient(180deg, rgba(75,143,240,.08), transparent); }
+  .card.l2 { border-color: rgba(124,92,255,.5); background: linear-gradient(180deg, rgba(124,92,255,.10), transparent); }
+  .card.note { border-left: 3px solid var(--warn); }
+  .card h3:first-child { margin-top: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .kpi .v { font-size: 24px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .kpi .l { font-size: 12.5px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; background: var(--surface-1); }
+  td { color: var(--text-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td b.ok { color: #3ecf8e; }
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .tag.ok { background: rgba(43,182,115,.16); color: #5fe0a1; }
+  .tag.part { background: rgba(250,178,25,.16); color: #ffd27a; }
+  .tag.todo { background: rgba(124,92,255,.18); color: #c9b8ff; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+  .flow span { background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 12px; font-size: 13.5px; color: var(--text); }
+  .flow em { color: var(--muted); font-style: normal; }
+  ol li, ul li { margin: 4px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  @media (max-width: 860px) {
+    header { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; }
+    nav#toc { top: 0; position: static; }
+    main { padding: 20px 16px 60px; }
+    .grid2, .kpis { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo"></span>User Guide <small>Team 06</small></div>
+  <div class="levels" role="tablist">
+    <button data-level="l1" data-first="problem">Level 1 · Neural IK</button>
+    <button data-level="l2" data-first="l2-problem">Level 2 · DRL re-routing</button>
+    <button data-level="m" data-first="m-overview">Mission · L1 + L2</button>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn" href="/">Level 1 Studio</a>
+  <a class="btn" href="/static/level2.html">Level 2 Studio</a>
+  <a class="btn" href="/static/mission.html">Mission</a>
+</header>
+
+<div class="wrap">
+  <nav id="toc" aria-label="Guide pages">
+    <button data-s="problem" data-l="l1">Problem</button>
+    <button data-s="concepts" data-l="l1">Key ideas &amp; maths</button>
+    <button data-s="robots" data-l="l1">Robots</button>
+    <button data-s="data" data-l="l1">Dataset generation</button>
+    <button data-s="training" data-l="l1">Training &amp; models</button>
+    <button data-s="refine" data-l="l1">LM refinement</button>
+    <button data-s="results" data-l="l1">Results</button>
+    <button data-s="achieved" data-l="l1">What we achieved</button>
+    <button data-s="howto" data-l="l1">▶ How to run</button>
+    <button data-s="l2-problem" data-l="l2">Problem &amp; approach</button>
+    <button data-s="l2-env" data-l="l2">Environment &amp; maths</button>
+    <button data-s="l2-agent" data-l="l2">Agent, training &amp; compute</button>
+    <button data-s="l2-results" data-l="l2">Results</button>
+    <button data-s="l2-achieved" data-l="l2">What we achieved</button>
+    <button data-s="l2-howto" data-l="l2">▶ How to run</button>
+    <button data-s="l2-link" data-l="l2">Level 1 ↔ Level 2</button>
+    <button data-s="m-overview" data-l="m">Pipeline &amp; maths</button>
+    <button data-s="m-howto" data-l="m">▶ How to run</button>
+    <button data-s="m-results" data-l="m">Results</button>
+  </nav>
+
+  <main>
+  <!-- ================================================================ -->
+  <section id="problem">
+    <h1>Problem statement</h1>
+    <p class="sub">Neural Kinematics and Reinforcement Learning for Collision-Free Space Manipulator Path Planning</p>
+
+    <div class="card goal">
+      <h3>Level 1 (this Studio)</h3>
+      <p>Use simulated multi-axis space manipulator joint data to develop a <b>kinematics-aware AI/ML model</b> that
+      predicts collision-free trajectories and <b>computes joint angles</b> to <b>prevent self-collision</b> with the satellite body.</p>
+    </div>
+    <div class="card l2">
+      <h3>Level 2 (next stage)</h3>
+      <p>Implement a <b>lightweight Deep Reinforcement Learning (DRL) policy agent</b>, optimised for low compute, that
+      <b>re-routes the manipulator path in real time</b> when unexpected obstacles or hardware position errors occur.</p>
+    </div>
+    <p><b>Dataset (from the brief):</b> OpenRAVE / PyBullet manipulator kinematics and space-robot simulation. We use
+    <b>PyBullet</b> and generate the data ourselves by simulation, so no download is needed.</p>
+
+    <h2>In simple words</h2>
+    <p>A robot arm is a chain of rotating joints. To grab something, the controller must answer:
+    <i>“which angle should every joint have so the gripper ends up exactly here, pointing this way?”</i>
+    This is called <b>inverse kinematics (IK)</b>. The answer must also be <b>safe</b>: the arm must never hit itself
+    (or, on a satellite, the satellite body).</p>
+    <p>Classical solvers find the angles by trial-and-improve steps. They are accurate but slow-ish, need a good starting
+    guess, and know nothing about collisions. Level 1 trains a <b>neural network</b> to give a fast, collision-aware first answer,
+    then finishes it with a small numerical solver to reach <b>&lt; 1 mm and &lt; 1°</b>.</p>
+
+    <h2>Scope agreed for Level 1</h2>
+    <ul>
+      <li>The final space manipulator's kinematic model is not available yet, so mentors approved validating the method on
+        standard, well-documented arms: <b>xArm6 (6-DOF)</b>, <b>KUKA LBR iiwa (7-DOF)</b> and <b>Franka Panda (7-DOF)</b>.</li>
+      <li>A robot is just one entry in <code>robot_config.py</code> (URDF file + joint names). When the space manipulator's URDF
+        exists, adding it is one entry; data generation, training and evaluation stay the same.</li>
+    </ul>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="concepts">
+    <h1>Key ideas &amp; maths</h1>
+    <p class="sub">Only the notation you need, with simple symbols.</p>
+
+    <h2>Symbols</h2>
+    <table>
+      <tr><th>Symbol</th><th>Meaning</th></tr>
+      <tr><td><i class="v">n</i></td><td>number of joints (degrees of freedom, DOF): 6 or 7</td></tr>
+      <tr><td><i class="v">θ</i> = (θ<sub>1</sub>, …, θ<sub>n</sub>)</td><td>joint angles in radians (the robot's “configuration”)</td></tr>
+      <tr><td><i class="v">p</i> = (x, y, z)</td><td>gripper (end-effector, EE) position in metres</td></tr>
+      <tr><td><i class="v">q</i> = (q<sub>x</sub>, q<sub>y</sub>, q<sub>z</sub>, q<sub>w</sub>)</td><td>gripper orientation as a unit quaternion (4 numbers, ‖q‖ = 1)</td></tr>
+      <tr><td><i class="v">s</i></td><td>“seed”: a starting/current joint configuration, also <i class="v">n</i> numbers</td></tr>
+      <tr><td><i class="v">θ̂</i></td><td>joint angles predicted by the network (the hat means “estimate”)</td></tr>
+    </table>
+
+    <h2>Forward kinematics (FK) – the easy direction</h2>
+    <p>Given the joint angles, multiply the transforms of all links one after the other to get the gripper pose:</p>
+    <div class="math">(p, q) = FK(θ) = T<sub>1</sub>(θ<sub>1</sub>) · T<sub>2</sub>(θ<sub>2</sub>) · … · T<sub>n</sub>(θ<sub>n</sub>)
+      <span class="c">Each T<sub>i</sub> is a 4×4 matrix (rotation + translation) for link i. PyBullet computes this for us. FK always has exactly one answer.</span></div>
+
+    <h2>Inverse kinematics (IK) – the hard direction</h2>
+    <div class="math">find θ such that FK(θ) = (p<sub>target</sub>, q<sub>target</sub>)
+      <span class="c">There may be 0, several (6-DOF) or infinitely many (7-DOF) answers. There is no simple formula for a general arm.</span></div>
+    <p><b>Why 7-DOF is harder:</b> a pose has 6 numbers (3 for position, 3 for rotation). A 6-DOF arm has exactly 6 unknowns,
+    so it has a <i>finite</i> set of solutions (e.g. elbow up / elbow down). A 7-DOF arm has one extra joint, so a whole
+    <i>family</i> of solutions reaches the same pose – the elbow can swing while the hand stays still (the “null space”).</p>
+
+    <h2>Errors we report</h2>
+    <div class="math">position error  e<sub>p</sub> = ‖ p(θ̂) − p<sub>target</sub> ‖   (in mm)<br>
+      orientation error  e<sub>R</sub> = 2 · arccos( |⟨q(θ̂), q<sub>target</sub>⟩| )   (in degrees)
+      <span class="c">‖·‖ is the straight-line distance; ⟨·,·⟩ is the dot product of the two quaternions. “Accuracy within 30 mm” = % of targets with e<sub>p</sub> ≤ 30 mm.</span></div>
+
+    <h2>Angle encoding with sin / cos</h2>
+    <p>−180° and +180° are the same direction but numerically far apart, which confuses a regression loss. So the network outputs
+    two numbers per joint and we decode them with <code>atan2</code>:</p>
+    <div class="math">network output per joint:  ( sin θ<sub>i</sub>, cos θ<sub>i</sub> )     →     θ<sub>i</sub> = atan2( sin θ<sub>i</sub>, cos θ<sub>i</sub> )</div>
+
+    <h2>The seed</h2>
+    <p>If two different joint answers reach the same pose, a network trained without extra information learns their
+    <i>average</i>, which reaches neither. Giving it a seed <i class="v">s</i> (in real use: the arm's current angles)
+    turns the question into “the solution <b>near this seed</b>”, which is well defined.</p>
+    <div class="math">network:  θ̂ = f<sub>w</sub>( p, q, s )     with  s = θ<sub>true</sub> + noise,  noise ~ N(0, 0.3²) per joint during training
+      <span class="c">f<sub>w</sub> is the neural network with weights w. N(0, 0.3²) is random noise with standard deviation 0.3 rad ≈ 17°.</span></div>
+
+    <h2>Collision-aware training loss</h2>
+    <p>A small second network <i class="v">C(θ)</i> learns the probability that a configuration self-collides. While the IK
+    network trains, its prediction is passed through the (frozen) collision network and colliding answers are penalised:</p>
+    <div class="math">Loss = mean( ‖ [sin θ̂, cos θ̂] − [sin θ, cos θ] ‖² )  +  λ · mean( σ( C(θ̂) ) ),     λ = 0.05
+      <span class="c">σ is the sigmoid (turns a score into a probability 0…1). Larger λ = safer answers but slightly less accurate poses.</span></div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="robots">
+    <h1>Robots: 6-DOF and 7-DOF</h1>
+    <p class="sub">All three ship with PyBullet (<code>pybullet_data</code>); joints are found by <b>name</b>, not index.</p>
+
+    <table>
+      <tr><th>Robot</th><th class="num">DOF</th><th>Type</th><th>Why we use it</th></tr>
+      <tr><td><b>UFactory xArm6</b></td><td class="num">6</td><td>industrial arm</td><td>Standard 6-DOF arm, finite IK solutions; our main test bed (most runs).</td></tr>
+      <tr><td><b>KUKA LBR iiwa</b></td><td class="num">7</td><td>redundant arm</td><td>The standard 7-DOF test bed in IK / RL papers; has the null-space problem.</td></tr>
+      <tr><td><b>Franka Emika Panda</b></td><td class="num">7</td><td>redundant arm (gripper fingers excluded)</td><td>Widely used in robot learning; alternative 7-DOF case.</td></tr>
+    </table>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>6-DOF (xArm6)</h3>
+        <ul>
+          <li>Unknowns = 6 = pose numbers → a few discrete solutions.</li>
+          <li>Joint 3 range is −225° … +11°, wider than atan2's −180…180°. We shift each angle by ±360° into the limits
+            (“wrap to limits”); this alone raised success from 77% to 99.8%.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>7-DOF (KUKA, Panda)</h3>
+        <ul>
+          <li>Unknowns = 7 &gt; 6 → infinitely many solutions per pose (elbow swing).</li>
+          <li>The seed input picks one consistent solution branch.</li>
+          <li>Panda's hand touches its own links by construction; the <code>clean</code>/<code>precision</code> generators
+            ignore such always-touching pairs (otherwise 100% of poses look “colliding”).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card note">
+      <h3>A real bug we caught</h3>
+      <p>The xArm6 URDF has a fixed <code>world_joint</code> at index 0, which silently shifts every joint index by one if you
+      assume indices 0…5. <code>robot_config.py</code> resolves joints by name to prevent this. Self-collision checks also only
+      work when the URDF is loaded with <code>URDF_USE_SELF_COLLISION</code> (and <code>…_EXCLUDE_PARENT</code> so touching
+      parent/child links are not false alarms).</p>
+    </div>
+  
+    <h2>Joint details (read from the URDF files by PyBullet)</h2>
+    <p>Angles in degrees. “idx” is PyBullet's joint index – note the xArm6 starts at 1 because index 0 is the fixed
+    <code>world_joint</code>. The end-effector (EE) is the frame of the last arm link.</p>
+
+    <h3>UFactory xArm6 – 6-DOF · <code>urdf/xarm/xarm6_robot.urdf</code> (in the project)</h3>
+    <table>
+      <tr><th>Joint</th><th class="num">idx</th><th class="num">Lower</th><th class="num">Upper</th><th class="num">Max speed</th><th>Moves link</th></tr>
+      <tr><td>joint1 (base turn)</td><td class="num">1</td><td class="num">−360°</td><td class="num">+360°</td><td class="num">3.14 rad/s</td><td>link1</td></tr>
+      <tr><td>joint2 (shoulder)</td><td class="num">2</td><td class="num">−118°</td><td class="num">+120°</td><td class="num">3.14 rad/s</td><td>link2</td></tr>
+      <tr><td>joint3 (elbow)</td><td class="num">3</td><td class="num">−225°</td><td class="num">+11°</td><td class="num">3.14 rad/s</td><td>link3</td></tr>
+      <tr><td>joint4 (forearm roll)</td><td class="num">4</td><td class="num">−360°</td><td class="num">+360°</td><td class="num">3.14 rad/s</td><td>link4</td></tr>
+      <tr><td>joint5 (wrist pitch)</td><td class="num">5</td><td class="num">−97°</td><td class="num">+180°</td><td class="num">3.14 rad/s</td><td>link5</td></tr>
+      <tr><td>joint6 (wrist roll)</td><td class="num">6</td><td class="num">−360°</td><td class="num">+360°</td><td class="num">3.14 rad/s</td><td>link6 = EE</td></tr>
+    </table>
+    <p class="muted">Reach ≈ 0.76 m from the base axis; EE height −0.37 … 1.03 m over all joint configurations (7 joints in the URDF, 6 movable).</p>
+
+    <h3>KUKA LBR iiwa – 7-DOF · <code>kuka_iiwa/model.urdf</code> (pybullet_data)</h3>
+    <table>
+      <tr><th>Joint</th><th class="num">idx</th><th class="num">Lower</th><th class="num">Upper</th><th class="num">Max speed</th><th>Moves link</th></tr>
+      <tr><td>lbr_iiwa_joint_1</td><td class="num">0</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_1</td></tr>
+      <tr><td>lbr_iiwa_joint_2</td><td class="num">1</td><td class="num">−120°</td><td class="num">+120°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_2</td></tr>
+      <tr><td>lbr_iiwa_joint_3</td><td class="num">2</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_3</td></tr>
+      <tr><td>lbr_iiwa_joint_4</td><td class="num">3</td><td class="num">−120°</td><td class="num">+120°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_4</td></tr>
+      <tr><td>lbr_iiwa_joint_5</td><td class="num">4</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_5</td></tr>
+      <tr><td>lbr_iiwa_joint_6</td><td class="num">5</td><td class="num">−120°</td><td class="num">+120°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_6</td></tr>
+      <tr><td>lbr_iiwa_joint_7</td><td class="num">6</td><td class="num">−175°</td><td class="num">+175°</td><td class="num">10 rad/s</td><td>lbr_iiwa_link_7 = EE</td></tr>
+    </table>
+    <p class="muted">Reach ≈ 0.90 m; EE height −0.30 … 1.26 m. The speed limit in this URDF is a placeholder value.</p>
+
+    <h3>Franka Emika Panda – 7-DOF · <code>franka_panda/panda.urdf</code> (pybullet_data)</h3>
+    <table>
+      <tr><th>Joint</th><th class="num">idx</th><th class="num">Lower</th><th class="num">Upper</th><th class="num">Max speed</th><th>Moves link</th></tr>
+      <tr><td>panda_joint1</td><td class="num">0</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">2.17 rad/s</td><td>panda_link1</td></tr>
+      <tr><td>panda_joint2</td><td class="num">1</td><td class="num">−105°</td><td class="num">+105°</td><td class="num">2.17 rad/s</td><td>panda_link2</td></tr>
+      <tr><td>panda_joint3</td><td class="num">2</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">2.17 rad/s</td><td>panda_link3</td></tr>
+      <tr><td>panda_joint4</td><td class="num">3</td><td class="num">−180°</td><td class="num">0°</td><td class="num">2.17 rad/s</td><td>panda_link4</td></tr>
+      <tr><td>panda_joint5</td><td class="num">4</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">2.61 rad/s</td><td>panda_link5</td></tr>
+      <tr><td>panda_joint6</td><td class="num">5</td><td class="num">−5°</td><td class="num">+219°</td><td class="num">2.61 rad/s</td><td>panda_link6</td></tr>
+      <tr><td>panda_joint7</td><td class="num">6</td><td class="num">−170°</td><td class="num">+170°</td><td class="num">2.61 rad/s</td><td>panda_link7 = EE</td></tr>
+    </table>
+    <p class="muted">Reach ≈ 0.80 m; EE height −0.26 … 1.13 m. 12 joints in the URDF (hand and fingers are fixed / excluded).
+    Use the <b>clean</b> or <b>precision</b> generator for the Panda (the base generator labels every pose colliding). Level 2 supports xArm6 and KUKA.</p>
+
+    <h2>Adding your own robot (e.g. the space manipulator)</h2>
+    <ol>
+      <li>Put the URDF (and its meshes) in <code>urdf/&lt;name&gt;/</code>.</li>
+      <li>Add one entry to <code>ROBOTS</code> in <code>robot_config.py</code>: <code>"urdf"</code>, <code>"joint_names"</code> (arm joints in kinematic order),
+        <code>"dof"</code>, <code>"description"</code>.</li>
+      <li>Restart the Studio – the robot appears in the robot list; generation, training, inference and evaluation work unchanged.</li>
+    </ol>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="data">
+    <h1>Dataset generation</h1>
+    <p class="sub">We create labelled examples by simulation: pick angles → compute pose → check collision.</p>
+
+    <div class="flow"><span>random θ within joint limits</span><em>→</em><span>FK(θ) = (p, q)</span><em>→</em><span>self-collision? (0 / 1)</span><em>→</em><span>save (θ, p, q, label)</span></div>
+
+    <h2>Sampling</h2>
+    <ul>
+      <li><b>Uniform</b> (70%): each joint θ<sub>i</sub> ~ Uniform(lower<sub>i</sub>, upper<sub>i</sub>).</li>
+      <li><b>Near the limits</b> (30%): joints pushed towards their extremes, where self-collisions concentrate.</li>
+      <li>Each sample is labelled colliding if any two non-parent/child links touch (PyBullet contact check).</li>
+      <li>Only <b>collision-free</b> samples train the IK network; <b>all</b> samples train the collision classifier.</li>
+    </ul>
+
+    <h2>Generators available in the Studio</h2>
+    <table>
+      <tr><th>Generator</th><th>Idea</th><th>Use it for</th></tr>
+      <tr><td><b>Base</b> (<code>generate_dataset.py</code>)</td><td>Uniform + near-limit sampling, contact-based labels.</td><td>xArm6, KUKA.</td></tr>
+      <tr><td><b>clean</b></td><td>Builds a self-collision matrix first (like MoveIt) and ignores pairs that always touch; Sobol sampling + 20% near limits.</td><td>Panda / 7-axis arms with grippers (≈17–25% colliding instead of 100%).</td></tr>
+      <tr><td><b>precision</b></td><td>Clean matrix + Sobol coverage, 15% near-limit, quaternions with w ≥ 0 (no q / −q duplicates). ≈500k xArm6 samples in 30 s.</td><td>The &lt; 1 mm / &lt; 1° pipeline.</td></tr>
+      <tr><td><b>chatgpt v1</b></td><td>Keeps only collision-safe poses with a clearance margin; rejected poses stored separately.</td><td>Experiments with safety margins.</td></tr>
+    </table>
+
+    <h2>What a dataset file contains</h2>
+    <div class="math">joints  (N × n)   positions  (N × 3)   orientations  (N × 4)   collision_labels  (N)   joint_limits  (n × 2)
+      <span class="c">Saved as <code>.npz</code> in <code>ui/workspace/library/datasets/&lt;id&gt;/</code>; every dataset gets its own folder and is never overwritten.</span></div>
+
+    <h2>Train / validation / test split</h2>
+    <p>For every training run the Studio first removes a <b>held-out test split</b> (15%) that the network never sees. The rest is
+    split 85 / 15 into train / validation. All “test” numbers in this guide are on that unseen split.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="training">
+    <h1>Training &amp; models</h1>
+    <p class="sub">Two networks: a collision classifier, then the IK network that uses it.</p>
+
+    <h2>1 · Collision classifier  C(θ)</h2>
+    <ul>
+      <li>Small MLP 64 → 64 → 1, input = joint angles, output = collision score (sigmoid → probability).</li>
+      <li>Trained first (15 epochs), then frozen. Fast enough to call thousands of times per second – reusable in Level 2.</li>
+      <li>Measured (xArm6, run <code>20261005-155310</code>, 3,000 unseen poses): <b>97.2% accuracy</b>, 90.8% precision, 87.1% recall.</li>
+    </ul>
+
+    <h2>2 · IK network  f<sub>w</sub>(p, q, s)</h2>
+    <div class="math">input  [ x, y, z, q<sub>x</sub>, q<sub>y</sub>, q<sub>z</sub>, q<sub>w</sub>, s<sub>1</sub> … s<sub>n</sub> ]  (7 + n numbers)
+      →  output  [ sin θ̂<sub>1</sub> … sin θ̂<sub>n</sub>, cos θ̂<sub>1</sub> … cos θ̂<sub>n</sub> ]  (2n numbers)</div>
+    <ul>
+      <li><b>Base model</b> (<code>train_ik.py</code>): MLP 256 → 256 → 128 → 2n, ReLU, ≈104k parameters.</li>
+      <li>Optimiser Adam, learning rate 0.001, batch 256, loss as in “Key ideas” (MSE + 0.05 · collision penalty).</li>
+      <li><b>Automatic stop:</b> training ends early when e.g. ≥ 90% of samples land within the tolerance for 2 epochs in a row.</li>
+      <li>Trains on the GPU (RTX 3060) when available; every run is saved under <code>ui/workspace/library/runs/&lt;run&gt;/</code>.</li>
+    </ul>
+
+    <h2>Model catalogue (<code>modelset/</code>)</h2>
+    <p>Any model file with the same interface can be picked in <b>Train → Model</b>; all are trained by the same loop for a fair comparison.</p>
+    <table>
+      <tr><th>Folder</th><th>Models</th><th>Idea</th></tr>
+      <tr><td>custom</td><td>model_set.py, base_512.py</td><td>Our own larger MLPs (model_set ≈ 2.05M parameters – best network so far).</td></tr>
+      <tr><td>mlp</td><td>M01, M02, M09, M10</td><td>Residual, wide, densely connected, SwiGLU with seed-trust gate.</td></tr>
+      <tr><td>conditioned</td><td>M03, M04</td><td>Fourier features of the pose; FiLM conditioning.</td></tr>
+      <tr><td>structured</td><td>M05–M08</td><td>Iterative refiner, kinematic chain, joint transformer, mixture of experts.</td></tr>
+      <tr><td>paper_iros2024_lbe</td><td>6 models</td><td>Reproduction of the IROS 2024 “Learning-by-Example” MLP / RMLP / DMLP.</td></tr>
+      <tr><td>precision</td><td>precision_ik_net.py</td><td>Robust starting point for the LM solver (&lt; 1 mm goal).</td></tr>
+    </table>
+    <p class="muted">Models in mlp / conditioned / structured / paper are built and load-checked but not all have been fully trained and benchmarked yet.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="refine">
+    <h1>Refinement: network + LM solver</h1>
+    <p class="sub">The network gives a fast first guess; a few solver steps make it exact.</p>
+    <p>No published pure neural IK reaches sub-millimetre accuracy. Systems that do (e.g. IKFlow; Lu, Zou &amp; Jiang 2022 on the
+    xArm6) use the network as a <b>starting point</b> and finish with a numerical solver. We use
+    <b>Levenberg–Marquardt (LM)</b>, implemented batched in PyTorch (<code>refine/lm_solver.py</code>).</p>
+
+    <h2>One LM step</h2>
+    <div class="math">Δθ = ( Jᵀ J + λ I )<sup>−1</sup> Jᵀ e ,     θ ← clamp( θ + Δθ , limits ) ,     λ = ‖e‖² + 10<sup>−6</sup>
+      <span class="c">e = [position error; rotation error] (6 numbers). J is the 6 × n Jacobian: how much the gripper moves when each joint moves a little. I is the identity matrix. λ (“damping”) keeps steps small when far from the target.</span></div>
+
+    <h2>The full pipeline (Run Inference → Refinement = LM)</h2>
+    <ol>
+      <li><b>Network</b> predicts θ̂ from (p, q, s).</li>
+      <li><b>Wrap to limits:</b> shift each angle by ±360° to the copy inside the joint limits closest to the seed.</li>
+      <li><b>LM, 30 iterations</b> from the network answer and from the seed; keep the better one.</li>
+      <li><b>Random restarts</b> (16) only for targets still outside 1 mm / 1°.</li>
+      <li><b>PyBullet check:</b> FK error, joint limits and self-collision verified independently.</li>
+      <li><b>Collision-free retry:</b> if the answer collides, search another arm posture and keep the first one PyBullet confirms.</li>
+    </ol>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="results">
+    <h1>Results</h1>
+    <p class="sub">All numbers measured on unseen (held-out) targets. xArm6 unless stated.</p>
+
+    <div class="kpis">
+      <div class="kpi"><div class="v">0.0003 mm</div><div class="l">mean position error, network + LM (2,613 test targets)</div></div>
+      <div class="kpi"><div class="v">100%</div><div class="l">within 1 mm &amp; 1°, warm and cold start</div></div>
+      <div class="kpi"><div class="v">0%</div><div class="l">self-collisions and joint-limit violations after refinement</div></div>
+      <div class="kpi"><div class="v">97.2%</div><div class="l">collision classifier accuracy</div></div>
+    </div>
+
+    <h2>1 · Starting point (Level 1 plan, 200 targets per robot)</h2>
+    <table>
+      <tr><th>Robot</th><th>Approach</th><th class="num">Position err.</th><th class="num">Orientation err.</th><th class="num">Self-collision</th><th class="num">Time / call</th></tr>
+      <tr><td rowspan="3">xArm6</td><td>Neural alone</td><td class="num">128 mm</td><td class="num">33.7°</td><td class="num">0.0%</td><td class="num">0.08 ms</td></tr>
+      <tr><td>Classical DLS (100 iters)</td><td class="num">5 mm</td><td class="num">0.04°</td><td class="num">9.0%</td><td class="num">0.23 ms</td></tr>
+      <tr><td>Hybrid (neural + 5 DLS)</td><td class="num">45 mm</td><td class="num">0.73°</td><td class="num">6.5%</td><td class="num">0.12 ms</td></tr>
+      <tr><td rowspan="3">KUKA iiwa</td><td>Neural alone</td><td class="num">140 mm</td><td class="num">32.4°</td><td class="num">0.0%</td><td class="num">0.08 ms</td></tr>
+      <tr><td>Classical DLS (100 iters)</td><td class="num">110 mm</td><td class="num">0.12°</td><td class="num">9.5%</td><td class="num">0.23 ms</td></tr>
+      <tr><td>Hybrid (neural + 5 DLS)</td><td class="num">84 mm</td><td class="num">1.14°</td><td class="num">5.0%</td><td class="num">0.13 ms</td></tr>
+    </table>
+
+    <h2>2 · Better networks (network alone, xArm6, 200k-sample dataset, 25,090 test targets)</h2>
+    <table>
+      <tr><th>Run</th><th>Model</th><th class="num">Epochs logged</th><th class="num">Mean pos. err.</th><th class="num">Mean orient. err.</th><th class="num">≤ 50 mm</th><th class="num">≤ 100 mm</th></tr>
+      <tr><td><code>20260928-164952</code></td><td>train_ik.py IKNet</td><td class="num">17</td><td class="num">152.2 mm</td><td class="num">34.6°</td><td class="num">7.2%</td><td class="num">31.3%</td></tr>
+      <tr><td><code>20260928-165249</code></td><td>train_ik.py IKNet</td><td class="num">45</td><td class="num">57.8 mm</td><td class="num">24.4°</td><td class="num">47.1%</td><td class="num">90.7%</td></tr>
+      <tr><td><code>20260928-170725</code></td><td>train_ik.py IKNet</td><td class="num">135</td><td class="num">38.3 mm</td><td class="num">13.7°</td><td class="num">76.1%</td><td class="num">98.2%</td></tr>
+      <tr><td><code>20260928-174703</code></td><td><b>model_set.py</b> (2.05M params)</td><td class="num">135</td><td class="num"><b class="ok">23.1 mm</b></td><td class="num"><b class="ok">5.8°</b></td><td class="num">95.5%</td><td class="num">99.8%</td></tr>
+    </table>
+    <p class="muted">“train_ik.py IKNet” = the project's network as it was in train_ik.py when each run was made; the runs differ mainly in training length.</p>
+    <p>The best network alone improved from <b>128 mm → 23.1 mm</b> mean error (5.5× better) with 0% self-collisions — but it is
+    still far from 1 mm, and 36% of its raw answers lie outside a joint limit. That is why the wrap-to-limits step and LM refinement are needed.</p>
+
+    <h2>3 · Network + LM refinement (xArm6, run <code>20261005-155310</code>, 2,613 test targets)</h2>
+    <table>
+      <tr><th>Seed</th><th>Stage</th><th class="num">Mean pos. err.</th><th class="num">Mean orient. err.</th><th class="num">Within 1 mm</th><th class="num">Self-coll.</th><th class="num">Limit viol.</th></tr>
+      <tr><td rowspan="2">warm (true + noise)</td><td>network alone</td><td class="num">124.5 mm</td><td class="num">32.6°</td><td class="num">0%</td><td class="num">0.08%</td><td class="num">1.45%</td></tr>
+      <tr><td><b>+ LM</b></td><td class="num"><b class="ok">0.0003 mm</b></td><td class="num"><b class="ok">0.009°</b></td><td class="num"><b class="ok">100%</b></td><td class="num">0%</td><td class="num">0%</td></tr>
+      <tr><td rowspan="2">cold (zero pose)</td><td>network alone</td><td class="num">352.8 mm</td><td class="num">122.4°</td><td class="num">0%</td><td class="num">0%</td><td class="num">0%</td></tr>
+      <tr><td><b>+ LM</b></td><td class="num"><b class="ok">0.005 mm</b></td><td class="num"><b class="ok">0.009°</b></td><td class="num"><b class="ok">100%</b></td><td class="num">0%</td><td class="num">0%</td></tr>
+    </table>
+
+    <h2>Speed</h2>
+    <ul>
+      <li>IK network on the RTX 3060: <b>0.38 ms</b> for one target, <b>0.16 µs per target</b> in a batch.</li>
+      <li>LM solver: about <b>0.03 ms per target</b> on the GPU when 2,000 targets are solved together (10 iterations, warm start).</li>
+      <li>One interactive “Run inference” in the Studio takes ~15–95 ms because it also runs the PyBullet checks and drawing.</li>
+    </ul>
+
+    <div class="card note">
+      <h3>Honest limits</h3>
+      <ul>
+        <li>The pure network is not accurate enough on its own (best 23 mm); the &lt; 1 mm result comes from network + LM.</li>
+        <li>Most trained runs are for the <b>xArm6</b>. The 7-DOF arms are supported end to end (data, training, LM solver – FK
+          matches PyBullet to ~1e-4 mm on KUKA and Panda), but have fewer benchmarked runs so far (KUKA network alone: 134.8 mm on 5,000 targets).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="achieved">
+    <h1>What we achieved vs. the problem statement</h1>
+    <p class="sub">Level 1 requirement by requirement.</p>
+    <table>
+      <tr><th>Requirement (Level 1)</th><th>Status</th><th>How</th></tr>
+      <tr><td>Use simulated multi-axis manipulator joint data</td><td><span class="tag ok">Done</span></td>
+        <td>PyBullet simulation of 6-DOF and 7-DOF arms; 4 generators; datasets up to 200k+ samples, versioned in a library.</td></tr>
+      <tr><td>Kinematics-aware AI/ML model</td><td><span class="tag ok">Done</span></td>
+        <td>IK network learns pose → joints from FK-generated data; sin/cos encoding, seed conditioning, wrap-to-limits; 19 architectures to compare.</td></tr>
+      <tr><td>Compute joint angles</td><td><span class="tag ok">Done</span></td>
+        <td>Network + LM: 100% of unseen xArm6 targets within 1 mm and 1° (mean 0.0003 mm), also from a cold (zero) start.</td></tr>
+      <tr><td>Prevent self-collision</td><td><span class="tag ok">Done</span></td>
+        <td>Collision classifier (97.2%) used inside the training loss; PyBullet verifies every answer; collision-free retry. 0% self-collisions on the test set.</td></tr>
+      <tr><td>Predict collision-free trajectories</td><td><span class="tag ok">Done (Mission)</span></td>
+        <td>The Mission page estimates the path to the IK goal and checks every waypoint for obstacle and self-collision (blocked in ~58% of
+        dynamic missions); the Level 2 agent then executes a collision-free route – 0% collisions over 40 dynamic missions.</td></tr>
+      <tr><td>…with the satellite body</td><td><span class="tag part">Partly</span></td>
+        <td>Self-collision between the arm's own links is handled. A satellite-body model is not in the simulation yet; it can be added as a URDF in <code>robot_config.py</code> without changing the pipeline.</td></tr>
+      <tr><td>Both 6-DOF and 7-DOF</td><td><span class="tag ok">Done</span> / <span class="tag part">more runs</span></td>
+        <td>xArm6 fully benchmarked; KUKA iiwa and Panda supported end to end, fewer benchmark runs.</td></tr>
+    </table>
+
+    <h2>Extra deliverables</h2>
+    <ul>
+      <li><b>Neural IK Studio</b>: web digital twin to generate, browse, train, evaluate and run inference, with a live 3D robot,
+        GPU monitor and a library where nothing is overwritten.</li>
+      <li>GPU training on WSL2 + CUDA (RTX 3060).</li>
+      <li>Reusable pieces for Level 2: fast collision classifier, batched FK/Jacobian in PyTorch, LM solver.</li>
+    </ul>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="howto">
+    <h1>Level 1 – how to run it</h1>
+    <p class="sub">Start the Studio, then go left to right: Robot → Generate → Browse → Train → Infer. Command-line equivalents at the end.</p>
+
+    <h2>0 · Start (every time)</h2>
+    <table>
+      <tr><th>Where</th><th>Command</th><th>What it does</th></tr>
+      <tr><td>Windows terminal</td><td><code>wsl</code></td><td>Opens Ubuntu-24.04 (as root) where the GPU environment lives.</td></tr>
+      <tr><td>Ubuntu</td><td><code>nik-server</code></td><td>Goes to the project, activates <code>~/nik-venv-gpu</code> (CUDA PyTorch) and starts the Studio.</td></tr>
+      <tr><td>Browser</td><td><code>http://127.0.0.1:8765</code></td><td>The Studio. <code>Ctrl+C</code> in the terminal stops it.</td></tr>
+    </table>
+    <p class="muted">Check the GPU: <code>nik</code> then <code>python -c "import torch; print(torch.cuda.is_available())"</code> → True. Training runs on the RTX 3060 automatically.</p>
+
+    <h2>⚙ Robot – move the arm by hand</h2>
+    <ol>
+      <li>Choose the robot in the header (xarm6 / kuka_iiwa / panda).</li>
+      <li>Drag a joint slider: PyBullet computes the gripper pose and checks self-collision (colliding links turn red).</li>
+      <li><b>Zero pose</b> / <b>Random pose</b> for quick checks.</li>
+    </ol>
+
+    <h2>1 · Generate a dataset</h2>
+    <table>
+      <tr><th>Field</th><th>Meaning</th><th>Typical value</th></tr>
+      <tr><td>Generator</td><td>Base (<code>generate_dataset.py</code>) or a file in <code>datagen/</code>: clean, precision, chatgpt v1.</td><td>Base for xArm6/KUKA, <b>precision</b> for the &lt; 1 mm pipeline, clean/precision for Panda</td></tr>
+      <tr><td>Samples (n)</td><td>How many random configurations to simulate.</td><td>20,000 (quick) … 200,000+ (best networks)</td></tr>
+      <tr><td>Seed</td><td>Random seed – same seed + generator = same dataset.</td><td>0</td></tr>
+      <tr><td>Movement split</td><td><b>Natural</b> keeps whatever share of colliding poses the generator produces; or set Successful % / Collision % yourself.</td><td>Natural</td></tr>
+      <tr><td>Generator options</td><td>Shown when the generator has extra parameters, e.g. precision: <code>near_limit_frac</code> (share near joint limits, 0.15), <code>clearance_mm</code> (safety margin).</td><td>defaults</td></tr>
+      <tr><td>Advanced → Slow motion</td><td>Milliseconds per sample so you can watch generation in 3D; 0 = full speed.</td><td>0</td></tr>
+    </table>
+    <p>Press <b>Generate dataset</b>. The 3D view shows samples live (blue = free, red = colliding). The result is saved as
+    <code>ui/workspace/library/datasets/ds_&lt;date&gt;_&lt;robot&gt;_n&lt;N&gt;_s&lt;seed&gt;/data/&lt;robot&gt;_ik_dataset.npz</code> + <code>meta.json</code>.
+    Speed: about 500k xArm6 samples in 30 s with the precision generator.</p>
+
+    <h2>2 · Browse the dataset</h2>
+    <p>Pick a dataset, then step with ◀ ▶, type an index, or <b>▶ Play</b> (2–25 samples/s). Each sample shows the joints, the gripper
+    pose, the collision label and whether the sample is in a run's train / validation / test split.</p>
+
+    <h2>3 · Train a model</h2>
+    <table>
+      <tr><th>Field</th><th>Meaning</th><th>Typical value</th></tr>
+      <tr><td>Training dataset</td><td>A ready library dataset of the selected robot.</td><td>your newest</td></tr>
+      <tr><td>Model</td><td>Base model (<code>train_ik.py</code> IKNet) or any file in <code>modelset/</code>; ↻ rescans the folder.</td><td>base or model_set.py</td></tr>
+      <tr><td>IK epochs (max)</td><td>Passes over the data (upper limit if automatic stop is on).</td><td>60 – 120</td></tr>
+      <tr><td>Collision-net epochs</td><td>Training of the collision classifier.</td><td>15</td></tr>
+      <tr><td>Position tolerance (mm)</td><td>A prediction is “accurate” if the gripper lands within this distance.</td><td>30 – 100</td></tr>
+      <tr><td>Automatic stop</td><td>Stop when ≥ X % of samples are within tolerance for N epochs in a row (train or validation split).</td><td>90 %, 2 epochs</td></tr>
+      <tr><td>Advanced → Held-out test split</td><td>Removed before training, never seen – used for honest test numbers.</td><td>15 %</td></tr>
+      <tr><td>Advanced → Tracked cases / render every / live samples</td><td>Images of fixed test cases during training, and how often the 3D view shows live samples.</td><td>8 / 5 / 6</td></tr>
+    </table>
+    <p>Press <b>Train</b> (Stop ends it early; the run keeps what it has). Open <b>📈 Monitor</b> for live loss / accuracy and GPU load.
+    The run is saved in <code>ui/workspace/library/runs/&lt;run&gt;/</code> (models, split, metrics, images). Time: 20k samples × 60 epochs ≈ 3 min on the GPU;
+    200k × 120 epochs ≈ 20–30 min. At the end the test split is also refined with the LM solver automatically.</p>
+
+    <h2>4 · Run inference</h2>
+    <table>
+      <tr><th>Field</th><th>Options</th></tr>
+      <tr><td>Model</td><td>Any trained run of the robot.</td></tr>
+      <tr><td>Target pose</td><td>Held-out test sample (honest) · sample from a dataset · current joint sliders · custom x, y, z (m) + roll, pitch, yaw (°).</td></tr>
+      <tr><td>Seed</td><td>True joints + noise (as in training) · true joints · current sliders · zero pose (hardest).</td></tr>
+      <tr><td>Refinement</td><td><b>LM solver</b> (&lt; 1 mm / &lt; 1°, recommended) · PyBullet DLS · none (network only). Advanced: iterations (30), random restarts (16).</td></tr>
+    </table>
+    <p><b>Run inference</b> shows the final answer (solid robot), the network-alone answer (orange ghost) and the target (red frame), with
+    errors, time, self-collision and joint-limit checks. <b>×20 test samples</b> runs 20 held-out targets. Every inference is logged in the run.</p>
+
+    <h2>Library, evaluation and deleting</h2>
+    <ul>
+      <li><b>Library</b> tab: every dataset and run; the action buttons (Browse, Train on, Details, Inference, 🗑 Delete) are in the <b>first column</b>.</li>
+      <li><b>Run details</b>: metrics per split and tolerance, curves, and <b>Evaluate</b> on another dataset (optionally with LM refinement).</li>
+      <li><b>🗑 Delete</b> always asks <b>Yes / No</b> (No is the default, Esc = No). A dataset used by runs offers to delete those runs too.
+        Items used by a running job and the project's <code>data/</code> files cannot be deleted.</li>
+    </ul>
+
+    <h2>Command line (same pipeline, project folders)</h2>
+    <table>
+      <tr><th>Step</th><th>Command</th><th>Reads → writes</th></tr>
+      <tr><td>Environment</td><td><code>nik</code></td><td>project folder + GPU venv</td></tr>
+      <tr><td>Generate</td><td><code>python generate_dataset.py --robot xarm6 --n 20000 --seed 0</code></td><td>→ <code>data/xarm6_ik_dataset.npz</code></td></tr>
+      <tr><td>Train</td><td><code>python train_ik.py --robot xarm6 --epochs 60 --collision-epochs 15</code></td><td><code>data/…npz</code> → <code>models/xarm6_ik_net.pt</code>, <code>…_collision_net.pt</code>, <code>…_history.json</code> (<b>overwrites</b>; tracked in git)</td></tr>
+      <tr><td>Evaluate</td><td><code>python evaluate.py --robot xarm6 --n 200</code></td><td>models → neural vs. DLS vs. hybrid table</td></tr>
+      <tr><td>Figures</td><td><code>python make_figures.py</code></td><td>→ <code>figures/</code></td></tr>
+    </table>
+    <p class="muted">Use <code>--robot kuka_iiwa</code> or <code>panda</code> for 7-DOF. Use <b>Import from project</b> in the Library to bring command-line results into the Studio.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- ================================================================ LEVEL 2 -->
+  <section id="l2-problem">
+    <h1>Level 2 – problem &amp; approach</h1>
+    <p class="sub">Real-time re-routing with a lightweight Deep Reinforcement Learning agent.</p>
+    <div class="card l2">
+      <h3>Problem statement (Level 2)</h3>
+      <p>Implement a <b>lightweight Deep Reinforcement Learning (DRL) policy agent</b> optimised for <b>low compute overhead</b>
+      that <b>dynamically re-routes the manipulator path in real time</b> when <b>unexpected geometric obstacles</b> or
+      <b>hardware position errors</b> occur.</p>
+    </div>
+
+    <h2>In simple words</h2>
+    <p>Level 1 tells us <i>where</i> the joints must end up (the goal configuration from neural IK + LM). Level 2 decides
+    <i>how to get there</i>, one small step at a time, while things go wrong: an obstacle suddenly blocks the way, obstacles
+    drift, a joint slips, or the motors do not move exactly as commanded. The agent looks at the situation every step
+    (a few microseconds of computing) and bends the path around the problem.</p>
+
+    <div class="flow"><span>target pose</span><em>→</em><span>Level 1: neural IK + LM → goal joints θ<sub>goal</sub></span><em>→</em><span>Level 2: DRL agent, step by step</span><em>→</em><span>arm reaches the goal without collisions</span></div>
+
+    <h2>Approach</h2>
+    <ul>
+      <li><b>Simulation:</b> PyBullet (as in Level 1), xArm6 (6-DOF) and KUKA iiwa (7-DOF), with obstacles and injected hardware errors.</li>
+      <li><b>Algorithm:</b> PPO (proximal policy optimisation), written in plain PyTorch – no extra RL library.</li>
+      <li><b>Residual policy:</b> the agent outputs a <i>correction</i> on top of the straight path to the goal. With a zero
+        correction it behaves like the simple controller, so it only has to learn when and how to deviate.</li>
+      <li><b>Kinematics-aware input:</b> for every nearby obstacle the agent receives the joint-space “escape direction”
+        computed from the robot Jacobian, so it does not have to rediscover the arm's kinematics.</li>
+      <li><b>Lightweight:</b> a 2 × 64 network (≈ 9–10 k weights) that runs as plain NumPy on one CPU core.</li>
+      <li><b>Fair comparison:</b> two classical baselines on identical scenarios – the straight path and an artificial potential field.</li>
+    </ul>
+  </section>
+
+  <section id="l2-env">
+    <h1>Level 2 – environment &amp; maths</h1>
+    <p class="sub">A Markov decision process: state → action → next state + reward.</p>
+
+    <h2>One step</h2>
+    <div class="math">θ<sub>t+1</sub> = clip( θ<sub>t</sub> + Δ<sub>max</sub> · ( (1 + g) ⊙ u<sub>t</sub> ) + b ,  joint limits )      Δ<sub>max</sub> = 0.03 rad
+      <span class="c">u<sub>t</sub> ∈ [−1, 1]<sup>n</sup> is the command, g a per-joint actuator gain error (±20%), b a small bias, ⊙ element-wise product.</span></div>
+
+    <h2>Residual action</h2>
+    <div class="math">u<sub>t</sub> = clip( u<sub>straight</sub> + 2 · a<sub>t</sub> , −1, 1 ),      u<sub>straight</sub> = clip( (θ<sub>goal</sub> − θ<sub>t</sub>) / Δ<sub>max</sub> , −1, 1 )
+      <span class="c">a<sub>t</sub> ∈ [−1, 1]<sup>n</sup> is the agent's correction. a<sub>t</sub> = 0 gives the straight-path baseline.</span></div>
+
+    <h2>Unexpected events (randomised every episode)</h2>
+    <table>
+      <tr><th>Event</th><th>What happens</th></tr>
+      <tr><td>Obstacles on the path</td><td>1–2 spheres (3.5–7.5 cm) placed on the straight path, ≥ 10 cm from the arm at the start.</td></tr>
+      <tr><td>Sudden obstacle</td><td>A sphere <b>appears mid-motion</b> on the path ahead (≥ 12 cm from the arm when it appears).</td></tr>
+      <tr><td>Drifting obstacles</td><td>Obstacles move with a small random velocity.</td></tr>
+      <tr><td>Joint slip (hardware)</td><td>One joint suddenly jumps by N(0, 0.25 rad) ≈ ±14°.</td></tr>
+      <tr><td>Actuator error (hardware)</td><td>Gain error ±20% per joint and a small bias for the whole episode.</td></tr>
+    </table>
+    <p>The goal pose always keeps ≥ 12 cm clearance (Level 1 would choose a collision-free goal).</p>
+
+    <h2>What the agent sees (observation)</h2>
+    <ul>
+      <li>joint angles (normalised), joint error to the goal θ<sub>goal</sub> − θ, gripper position and gripper-to-goal vector,</li>
+      <li>positions of all links relative to the gripper, the previous action,</li>
+      <li>for each of 3 obstacle slots: position, closest-point vector robot → obstacle, clearance d, radius, active flag, and the
+        <b>escape direction</b> (below). 87 numbers in total for the xArm6.</li>
+    </ul>
+
+    <h2>Kinematics-aware escape direction</h2>
+    <div class="math">g = J<sub>c</sub>(θ)ᵀ · n̂ ,     ĝ = g / ‖g‖ ,     w = max(0, 1 − d / 0.25 m)
+      <span class="c">J<sub>c</sub> is the 3 × n position Jacobian of the robot point closest to the obstacle (from PyBullet); n̂ is the unit
+      normal from the obstacle to that point. Moving the joints along ĝ pushes the robot away fastest. The agent receives w · ĝ.</span></div>
+
+    <h2>Reward</h2>
+    <div class="math">r<sub>t</sub> = 3 · (D<sub>t−1</sub> − D<sub>t</sub>)  − 0.01  − 0.02‖a<sub>t</sub>‖²  − 0.02‖u<sub>t</sub> − u<sub>t−1</sub>‖²  − 1 · max(0, (0.08 − d<sub>min</sub>)/0.08)  − 0.3 · σ(C(θ<sub>t</sub>))<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ 15 if reached   − 25 if collision   − 10 if timeout
+      <span class="c">D = ‖θ<sub>goal</sub> − θ‖ + 2‖p<sub>goal</sub> − p‖ (progress), d<sub>min</sub> = smallest clearance to any obstacle,
+      C = the <b>Level 1 collision classifier</b> (self-collision risk), σ = sigmoid. Reached = every joint within 0.06 rad and gripper within 2 cm.</span></div>
+
+    <h2>Baselines</h2>
+    <ul>
+      <li><b>Straight path:</b> u = u<sub>straight</sub> – Level 1 IK + interpolation, no obstacle awareness.</li>
+      <li><b>Artificial potential field (APF):</b> u = clip(u<sub>straight</sub> + 2 Σ<sub>k</sub> w<sub>k</sub>² ĝ<sub>k</sub>) – the classical
+        reactive method (Khatib 1986, here in joint space). Avoids obstacles but can get <b>stuck in local minima</b>.</li>
+    </ul>
+  </section>
+
+  <section id="l2-agent">
+    <h1>Level 2 – agent, training &amp; compute</h1>
+    <p class="sub">PPO with a tiny network; GPU where it helps, CPU where it must.</p>
+
+    <h2>Network</h2>
+    <div class="math">π(a | s) = N( tanh(MLP<sub>64,64</sub>(ŝ)) , diag σ² )        V(s) = MLP<sub>64,64</sub>(ŝ)
+      <span class="c">ŝ = running-normalised observation. The actor (the only part that is deployed) has ≈ 9–10 k weights.</span></div>
+
+    <h2>PPO objective</h2>
+    <div class="math">L = −E[ min( ρ A , clip(ρ, 1 − 0.2, 1 + 0.2) A ) ] + 0.5 (V − R)²,        ρ = π<sub>new</sub>(a|s) / π<sub>old</sub>(a|s)
+      <span class="c">A = generalised advantage estimate (γ = 0.995, λ = 0.95). Adam, learning rate 3·10⁻⁴ decaying to 0, 6 epochs per update, mini-batch 2048.</span></div>
+
+    <h2>Where the computing happens</h2>
+    <table>
+      <tr><th>Part</th><th>Runs on</th><th>Why</th></tr>
+      <tr><td>PPO gradient updates (8,192 samples per update)</td><td><b>GPU</b> (RTX 3060, CUDA)</td><td>Batched matrix maths – what GPUs are for.</td></tr>
+      <tr><td>64 PyBullet simulations</td><td>CPU, 8 worker processes</td><td>PyBullet is a CPU library.</td></tr>
+      <tr><td>Action sampling during training (64 small inputs per step)</td><td>CPU copy of the policy</td><td>Measured: ~1 ms on CPU vs ~5 ms on the GPU (launch latency under WSL).</td></tr>
+      <tr><td>Deployed agent</td><td>CPU, NumPy only</td><td>“Low compute overhead”: no GPU or PyTorch needed on the robot computer.</td></tr>
+    </table>
+    <p>Training throughput on the laptop: about 5,000–6,000 simulated steps per second; 5 M steps take about 15–20 minutes.</p>
+  </section>
+
+  <section id="l2-results">
+    <h1>Level 2 – results</h1>
+    <p class="sub">DRL agent vs. classical baselines on identical seeded scenarios (xArm6).</p>
+    <div class="kpis">
+      <div class="kpi"><div class="v">84%</div><div class="l">success, everything at once (potential field 71%, straight 50%)</div></div>
+      <div class="kpi"><div class="v">2.0%</div><div class="l">collisions, everything at once (straight path 50%)</div></div>
+      <div class="kpi"><div class="v">11,078</div><div class="l">policy parameters (2 × 64 MLP)</div></div>
+      <div class="kpi"><div class="v">17.5 µs</div><div class="l">per decision, NumPy on 1 CPU core, no GPU</div></div>
+    </div>
+    <p>Best agent <code>l2_20261013-185525_xarm6</code>: xArm6, 20 M training steps in 134 min (PPO updates on the RTX 3060 GPU,
+    simulation on 10 CPU workers), observation v2 (obstacle velocities, clearance rates, stall counter, time). Evaluated on 200 unseen episodes per
+    scenario; all controllers get the <b>same seeds</b>. “Previous” = the first agent (5 M steps, observation v1) on the same seeds. Bold = best.</p>
+    <table>
+      <tr><th></th><th colspan="4" class="num">Success ↑</th><th colspan="4" class="num">Collisions ↓</th><th colspan="4" class="num">Stuck / timeout ↓</th></tr>
+      <tr><th>Scenario</th><th class="num">DRL new</th><th class="num">DRL previous</th><th class="num">pot. field</th><th class="num">straight</th>
+        <th class="num">DRL new</th><th class="num">previous</th><th class="num">pot. field</th><th class="num">straight</th>
+        <th class="num">DRL new</th><th class="num">previous</th><th class="num">pot. field</th><th class="num">straight</th></tr>
+      <tr><td>Everything at once</td><td class="num"><b class=ok>84.0%</b></td><td class="num">78.0%</td><td class="num">71.0%</td><td class="num">50.0%</td><td class="num"><b class=ok>2.0%</b></td><td class="num">2.5%</td><td class="num">2.5%</td><td class="num">50.0%</td><td class="num">14.0%</td><td class="num">19.5%</td><td class="num">26.5%</td><td class="num"><b class=ok>0.0%</b></td></tr><tr><td>Obstacles from the start</td><td class="num"><b class=ok>89.5%</b></td><td class="num">83.0%</td><td class="num">79.0%</td><td class="num">55.0%</td><td class="num">1.5%</td><td class="num"><b class=ok>1.0%</b></td><td class="num">1.5%</td><td class="num">45.0%</td><td class="num">9.0%</td><td class="num">16.0%</td><td class="num">19.5%</td><td class="num"><b class=ok>0.0%</b></td></tr><tr><td>Random mix</td><td class="num"><b class=ok>88.5%</b></td><td class="num">79.0%</td><td class="num">77.5%</td><td class="num">57.0%</td><td class="num"><b class=ok>2.0%</b></td><td class="num"><b class=ok>2.0%</b></td><td class="num">2.5%</td><td class="num">43.0%</td><td class="num">9.5%</td><td class="num">19.0%</td><td class="num">20.0%</td><td class="num"><b class=ok>0.0%</b></td></tr><tr><td>Sudden obstacle</td><td class="num">94.0%</td><td class="num"><b class=ok>94.5%</b></td><td class="num">91.0%</td><td class="num">80.5%</td><td class="num">1.5%</td><td class="num"><b class=ok>0.5%</b></td><td class="num">1.0%</td><td class="num">19.5%</td><td class="num">4.5%</td><td class="num">5.0%</td><td class="num">8.0%</td><td class="num"><b class=ok>0.0%</b></td></tr><tr><td>Drifting obstacles</td><td class="num">94.5%</td><td class="num">94.0%</td><td class="num"><b class=ok>95.5%</b></td><td class="num">50.0%</td><td class="num"><b class=ok>2.0%</b></td><td class="num"><b class=ok>2.0%</b></td><td class="num">2.5%</td><td class="num">50.0%</td><td class="num">3.5%</td><td class="num">4.0%</td><td class="num">2.0%</td><td class="num"><b class=ok>0.0%</b></td></tr><tr><td>Joint slip (hardware)</td><td class="num"><b class=ok>98.5%</b></td><td class="num"><b class=ok>98.5%</b></td><td class="num"><b class=ok>98.5%</b></td><td class="num"><b class=ok>98.5%</b></td><td class="num"><b class=ok>1.5%</b></td><td class="num"><b class=ok>1.5%</b></td><td class="num"><b class=ok>1.5%</b></td><td class="num"><b class=ok>1.5%</b></td><td class="num"><b class=ok>0.0%</b></td><td class="num"><b class=ok>0.0%</b></td><td class="num"><b class=ok>0.0%</b></td><td class="num"><b class=ok>0.0%</b></td></tr>
+    </table>
+
+    <h2>Reading the numbers</h2>
+    <ul>
+      <li><b>Collisions:</b> the straight path (Level 1 goal + interpolation) collides in 20–50 % of episodes with obstacles; the DRL agent in 1.5–2 %.</li>
+      <li><b>Getting stuck:</b> the potential field gets stuck in local minima (up to 20 %). The new agent – which sees how long it has
+        made no progress and how obstacles move – gets stuck far less (26.5% → 14.0% everything at once) and reaches the
+        goal 13 points more often than the potential field.</li>
+      <li><b>Hardware errors:</b> joint slips and actuator errors are recovered by all controllers in ~98.5 % (closed-loop control); the rest are slips that cause a self-collision.</li>
+    </ul>
+
+    <h2>How we got here (iterations)</h2>
+    <table>
+      <tr><th>Version</th><th>Change</th><th>Everything at once: success / collisions</th></tr>
+      <tr><td>Straight path</td><td>Baseline, no obstacle awareness</td><td class="num">50% / 50%</td></tr>
+      <tr><td>DRL v1</td><td>Agent outputs the joint command directly</td><td class="num">~30% / ~70% (did not learn to avoid)</td></tr>
+      <tr><td>DRL v2</td><td>Residual on the straight path, slower arm, avoidable obstacles</td><td class="num">37% / 55%</td></tr>
+      <tr><td>DRL v3</td><td>+ kinematics-aware escape direction Jᵀn in the observation</td><td class="num">67% / 3.5% (≈ potential field)</td></tr>
+      <tr><td>DRL v4</td><td>Residual on the potential field, timeout penalty, goal clearance (5 M steps)</td><td class="num">78% / 2.5%</td></tr>
+      <tr><td><b>DRL v5 (best)</b></td><td>+ obstacle velocities, clearance rate, stall counter, time; 20 M steps</td><td class="num"><b>84% / 2.0%</b></td></tr>
+    </table>
+
+    <div class="card note">
+      <h3>Honest limits</h3>
+      <ul>
+        <li>About 14% of the hardest episodes still end stuck (no collision, not arrived in 300 steps); with drifting obstacles the plain potential
+          field is level with the agent (95.5% vs 94.5%).</li>
+        <li>Trained and evaluated on the xArm6; the KUKA iiwa is supported by the same code but needs its own training run.</li>
+        <li>Obstacles are spheres and the arm is moved kinematically (no dynamics), as in Level 1.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="l2-achieved">
+    <h1>Level 2 – what we achieved vs. the problem statement</h1>
+    <p class="sub">Requirement by requirement.</p>
+    <table>
+      <tr><th>Requirement (Level 2)</th><th>Status</th><th>How</th></tr>
+      <tr><td>Deep Reinforcement Learning policy agent</td><td><span class="tag ok">Done</span></td>
+        <td>PPO actor-critic in PyTorch, trained 20 M steps on the GPU in simulation (<code>level2/ppo.py</code>).</td></tr>
+      <tr><td>Lightweight / low compute overhead</td><td><span class="tag ok">Done</span></td>
+        <td>11,078 parameters; 17.5 µs per decision as plain NumPy on one CPU core – no GPU or PyTorch needed when deployed.</td></tr>
+      <tr><td>Dynamically re-routes the path in real time</td><td><span class="tag ok">Done</span></td>
+        <td>A new decision every control step from the measured state; the path bends around obstacles as they appear (see Test scenario in the Studio).</td></tr>
+      <tr><td>…when unexpected geometric obstacles occur</td><td><span class="tag ok">Done</span></td>
+        <td>Sudden obstacle: 94.0% success, 1.5% collisions (straight path 19.5%); everything at once: 2.0% collisions vs 50%.</td></tr>
+      <tr><td>…or hardware position errors</td><td><span class="tag ok">Done</span></td>
+        <td>Joint slips + actuator gain/bias errors: 98.5% success (all controllers recover equally; closed-loop control).</td></tr>
+      <tr><td>Better than classical methods</td><td><span class="tag ok">Mostly</span></td>
+        <td>Beats the straight path everywhere and the potential field by 13–11 points on the hard scenarios (level on drifting obstacles); ~14% of the hardest episodes still get stuck.</td></tr>
+      <tr><td>6-DOF and 7-DOF</td><td><span class="tag part">xArm6 trained</span></td>
+        <td>Environment and training support xArm6 and KUKA iiwa; a KUKA agent can be trained from the Studio (Robot = kuka_iiwa).</td></tr>
+      <tr><td>Integration with Level 1</td><td><span class="tag ok">Done</span></td>
+        <td>Uses Level 1's robot set-up and collision classifier; the Mission page chains a Level 1 IK run and the agent end to end.</td></tr>
+    </table>
+  </section>
+
+  <section id="l2-howto">
+    <h1>Level 2 – how to run it</h1>
+    <p class="sub">Studio tab <b>Level 2 · DRL re-routing</b>: Environment → Train agent → Test scenario → Evaluate. No dataset step (see below).</p>
+
+    <div class="card note">
+      <h3>Why there is no dataset step</h3>
+      <p>Level 1 is <b>supervised</b> learning: it needs a dataset of examples (pose → correct joint angles) first. Level 2 is
+      <b>reinforcement</b> learning: the agent learns by acting in the simulator and receiving rewards, so <b>training is the data
+      generation</b> – about 5 million simulated steps per run, created on the fly and not stored.</p>
+    </div>
+
+    <h2>0 · Start</h2>
+    <p>Same as Level 1: <code>wsl</code> → <code>nik-server</code> → <code>http://127.0.0.1:8765</code> → click <b>Level 2 · DRL re-routing</b> in the header.</p>
+
+    <h2>1 · Environment – look at the situations</h2>
+    <table>
+      <tr><th>Field</th><th>Meaning</th></tr>
+      <tr><td>Robot</td><td>xarm6 (6-DOF) or kuka_iiwa (7-DOF).</td></tr>
+      <tr><td>Scenario</td><td>Everything at once · sudden obstacle · obstacles from the start · drifting obstacles · joint slip.</td></tr>
+      <tr><td>Seed</td><td>Which random situation (same seed = same start, goal, obstacles, errors). <b>Next ▶</b> = next seed.</td></tr>
+    </table>
+    <p><b>Preview with classical controllers</b> replays the situation with the potential field (solid robot) and the straight path (orange).
+    No agent needed – it shows what the agent has to do better (the straight path crashes, the potential field gets stuck).</p>
+
+    <h2>2 · Train the agent</h2>
+    <table>
+      <tr><th>Field</th><th>Meaning</th><th>Typical</th></tr>
+      <tr><td>Robot</td><td>Which arm the agent is for (an agent works only for that robot).</td><td>xarm6</td></tr>
+      <tr><td>Training steps</td><td>Simulated control steps in total. 0.5 M ≈ 2 min (smoke test) · 2 M ≈ 7 min · 5 M ≈ 17 min · 10 M ≈ 35 min.</td><td>5 M</td></tr>
+      <tr><td>Advanced → Parallel environments</td><td>Simulations run at once (on 10 CPU worker processes). More = faster but more RAM (~380 MB per worker).</td><td>80</td></tr>
+      <tr><td>Advanced → Seed</td><td>Random seed of training.</td><td>0</td></tr>
+      <tr><td>Advanced → Episodes per scenario</td><td>Size of the automatic evaluation at the end.</td><td>60 – 200</td></tr>
+    </table>
+    <p>Press <b>Train agent</b>. Progress (success / collision / timeout per update, steps/s, GPU) appears in the panel and under <b>Training curves</b>.
+    With <b>Follow live job</b> ticked, the 3D view replays one episode of the current agent every 8 updates (“● Live training”). <b>Stop</b> ends
+    training early – the best policy so far is kept. After training the agent is evaluated automatically against both baselines.</p>
+    <p>Saved in <code>ui/workspace/level2/policies/l2_&lt;date&gt;_&lt;robot&gt;/</code>: <code>policy.pt</code> (best), <code>policy_last.pt</code>,
+    <code>history.json</code> (curves), <code>meta.json</code> (settings + evaluation).</p>
+
+    <h2>3 · Test a scenario</h2>
+    <p>Pick the agent, a scenario and a seed → <b>Run scenario</b>. The agent (solid) is replayed next to a comparison (orange): choose
+    <i>Agent vs. straight path</i>, <i>Agent vs. potential field</i> or <i>Agent only</i>. The panel shows each controller's outcome
+    (success / collision / timeout), steps and minimum clearance; the timeline lists events (obstacle appeared, joint slipped). Use the slider,
+    ▶ Play and speed to step through; <b>Next seed ▶</b> tries another situation.</p>
+
+    <h2>4 · Evaluate</h2>
+    <p>Pick the agent and episodes per scenario → <b>Run evaluation</b>. Every scenario is run with identical seeds for the agent, the straight
+    path and the potential field. The <b>Results</b> tab shows success ↑, collisions ↓ and stuck/timeouts ↓ per controller (green = the agent
+    beats both baselines), the policy size and the decision time.</p>
+
+    <h2>Agents tab and deleting</h2>
+    <p>Lists all agents with status, training steps, time, device and scores. Buttons in the first column: <b>Test</b>, <b>Results</b>,
+    <b>Curves</b>, <b>🗑 Delete</b> (asks Yes / No first).</p>
+
+    <h2>Command line</h2>
+    <table>
+      <tr><th>Step</th><th>Command</th></tr>
+      <tr><td>Environment</td><td><code>nik</code></td></tr>
+      <tr><td>Train</td><td><code>python -m level2.train --robot xarm6 --steps 5000000 [--envs 80] [--seed 0] [--device cuda]</code> → <code>level2/runs/&lt;date&gt;_&lt;robot&gt;/</code></td></tr>
+      <tr><td>Evaluate</td><td><code>python -m level2.evaluate --policy level2/runs/&lt;id&gt;/policy.pt --n 200</code> → table + <code>policy_eval.json</code></td></tr>
+    </table>
+  </section>
+
+  <section id="l2-link">
+    <h1>How Level 1 and Level 2 connect</h1>
+    <p class="sub">Two different kinds of learning that share the robot, the kinematics and the collision knowledge.</p>
+
+    <div class="flow"><span>target pose (where the gripper must go)</span><em>→</em><span><b>Level 1</b>: neural IK + LM → goal joints θ<sub>goal</sub></span><em>→</em><span><b>Level 2</b>: DRL agent drives θ → θ<sub>goal</sub>, re-routing around problems</span></div>
+
+    <h2>Learning point of view</h2>
+    <table>
+      <tr><th></th><th>Level 1 – neural IK</th><th>Level 2 – DRL re-routing</th></tr>
+      <tr><td>Type of learning</td><td><b>Supervised</b>: learn a function from labelled examples</td><td><b>Reinforcement</b>: learn a behaviour from rewards</td></tr>
+      <tr><td>Question it answers</td><td>“Which joint angles put the gripper at this pose?” (one answer)</td><td>“Which small move should I make now?” (every step, ~50–300 per motion)</td></tr>
+      <tr><td>Data</td><td>Prepared dataset (FK of random joint configurations)</td><td>Generated while training by acting in the simulator</td></tr>
+      <tr><td>Loss / objective</td><td>MSE on (sin θ, cos θ) + collision penalty</td><td>PPO: maximise expected reward</td></tr>
+      <tr><td>Network</td><td>MLP, ~0.1–2 M weights, runs once per target</td><td>MLP 2 × 64, ~10 k weights, runs every control step</td></tr>
+      <tr><td>Output</td><td>Goal joint configuration</td><td>Joint motion command (correction)</td></tr>
+    </table>
+    <p>The two are trained <b>separately</b>: training Level 2 never changes Level 1's weights, and Level 1 does not need Level 2.</p>
+
+    <h2>What Level 2 takes from Level 1 today</h2>
+    <ul>
+      <li><b>The robot set-up:</b> the same <code>robot_config.py</code> registry, URDFs and PyBullet loading with self-collision checks.</li>
+      <li><b>The collision classifier C(θ)</b> from <code>models/&lt;robot&gt;_collision_net.pt</code> (trained by Level 1's <code>train_ik.py</code>):
+        Level 2's reward subtracts 0.3 · σ(C(θ)) every step, so the agent learns to stay away from self-collision-prone postures.
+        If you retrain that file, retrain the Level 2 agent too (its reward changed).</li>
+      <li><b>Kinematics:</b> Jacobian-based geometry – Level 1's LM solver uses the Jacobian to refine IK answers, Level 2 uses it for the escape direction.</li>
+      <li><b>The goal:</b> Level 2 is trained on random self-collision-free goal configurations – exactly the kind of answer Level 1 produces.</li>
+    </ul>
+
+    <div class="card note">
+      <h3>Training vs. use</h3>
+      <p>Level 2 is <b>trained</b> on randomly sampled goal configurations (stand-ins for IK answers), with the collision classifier from
+      <code>models/</code>. In <b>use</b>, the two levels are connected on the <b>Mission · L1 + L2</b> page: a target pose is solved by a chosen
+      Level 1 run (network + LM) and the Level 2 agent drives the arm to that IK goal – see the Mission section of this guide.</p>
+    </div>
+  </section>
+  <!-- ================================================================ MISSION (L1 + L2) -->
+  <section id="m-overview">
+    <h1>Mission – the complete system (Level 1 + Level 2)</h1>
+    <p class="sub">Solve IK, estimate the trajectory, then move while avoiding dynamic obstacles and self-collision.</p>
+    <div class="card goal">
+      <h3>Project goal in one run</h3>
+      <p>Given a <b>target pose</b> for the gripper, compute <b>collision-free joint angles</b> (Level 1), <b>estimate the path</b>
+      and check it, then <b>move the arm in real time</b>, re-routing around moving and suddenly appearing obstacles and recovering
+      from hardware position errors (Level 2) – without ever colliding with obstacles or with itself.</p>
+    </div>
+    <div class="flow"><span>① target pose (p, q)</span><em>→</em><span>② IK: Level 1 network + LM → θ<sub>goal</sub></span><em>→</em><span>③ trajectory estimate &amp; check</span><em>→</em><span>④ DRL movement (Level 2)</span><em>→</em><span>⑤ final pose check</span></div>
+
+    <h2>① Target pose</h2>
+    <p>Either a random <b>reachable</b> pose (the gripper pose of a random self-collision-free configuration) or your own position
+    (x, y, z) and orientation (roll, pitch, yaw). The arm starts from its current joints θ<sub>start</sub>.</p>
+
+    <h2>② Solve IK (Level 1)</h2>
+    <div class="math">θ̂ = f<sub>w</sub>(p, q, s = θ<sub>start</sub>)  →  θ<sub>goal</sub> = LM-refine(θ̂)  →  shift each joint by k·360° to the copy closest to θ<sub>start</sub>
+      <span class="c">The network is seeded with the arm's <b>current joints</b>, so it picks the solution branch nearest to where the arm is.
+      Accepted only if ‖p(θ<sub>goal</sub>) − p‖ ≤ 1 mm, orientation ≤ 1°, inside joint limits and <b>self-collision free</b> (PyBullet check).
+      The ±360° shift keeps the same pose but avoids a needless full turn of the wrist joints.</span></div>
+
+    <h2>③ Trajectory estimate</h2>
+    <div class="math">θ(s) = θ<sub>start</sub> + s · (θ<sub>goal</sub> − θ<sub>start</sub>),  s = 0 … 1 (40 waypoints)
+      <span class="c">For every waypoint the gripper position is computed (FK), plus the clearance to the obstacles known at the start and a
+      self-collision check. Waypoints are coloured: ok / near (&lt; 5 cm) / predicted collision. This is the path a planner without
+      re-routing would follow – if it is blocked, re-routing is needed.</span></div>
+
+    <h2>④ Move &amp; re-route (Level 2)</h2>
+    <p>The DRL agent drives θ<sub>start</sub> → θ<sub>goal</sub> step by step (Δθ ≤ 0.03 rad per step). While it moves, obstacles drift,
+    a new obstacle can appear on the path, a joint can slip and the motors have gain/bias errors. Every step it decides from the
+    measured state; an episode fails on contact with an obstacle or <b>self-collision</b>. When it arrives (2 cm / 0.06 rad) a short
+    <b>final approach</b> servos exactly onto θ<sub>goal</sub> in 0.01 rad steps, each one collision-checked.</p>
+
+    <h2>⑤ Final pose check</h2>
+    <div class="math">e<sub>p</sub> = ‖p(θ<sub>final</sub>) − p<sub>target</sub>‖,     e<sub>R</sub> = 2 arccos |⟨q(θ<sub>final</sub>), q<sub>target</sub>⟩|
+      <span class="c">Measured against the <b>original target pose</b>, so it includes the IK error and the movement.</span></div>
+
+    <h2>How the pieces cooperate</h2>
+    <table>
+      <tr><th>Need</th><th>Solved by</th></tr>
+      <tr><td>Joint angles for a pose</td><td>Level 1 IK network (fast first guess) + LM solver (exact)</td></tr>
+      <tr><td>No self-collision at the goal</td><td>Level 1 collision-free check / retry in the LM step</td></tr>
+      <tr><td>No self-collision on the way</td><td>Level 2 reward uses Level 1's collision classifier; PyBullet checks every step</td></tr>
+      <tr><td>Static obstacles on the path</td><td>Trajectory estimate predicts them; the agent re-routes</td></tr>
+      <tr><td>Dynamic / sudden obstacles</td><td>Level 2 agent reacts every step (kinematics-aware escape direction)</td></tr>
+      <tr><td>Hardware position errors</td><td>Closed-loop control: every step starts from the measured joints</td></tr>
+      <tr><td>Exact final pose</td><td>Final approach onto the IK goal</td></tr>
+    </table>
+  </section>
+
+  <section id="m-howto">
+    <h1>Mission – how to run it</h1>
+    <p class="sub">Studio header → <b>Mission · L1 + L2</b>. Needs one trained Level 1 run and one Level 2 agent for the same robot.</p>
+    <table>
+      <tr><th>Field</th><th>Meaning</th></tr>
+      <tr><td>Level 2 agent</td><td>The movement policy (the best evaluated agent is pre-selected). Its robot decides the robot of the mission.</td></tr>
+      <tr><td>Level 1 run</td><td>The IK model for that robot (the most accurate network is pre-selected).</td></tr>
+      <tr><td>Obstacles &amp; errors</td><td><b>Dynamic</b> (drifting + sudden obstacles + joint slip) · static + sudden + slip · sudden only · static only · slip only · free space.</td></tr>
+      <tr><td>Target</td><td>Random reachable pose, or custom x, y, z (m) + roll, pitch, yaw (°).</td></tr>
+      <tr><td>Mission seed</td><td>Which start pose, obstacles and errors (same seed = same mission). <b>Next ▶</b> = next mission.</td></tr>
+      <tr><td>Show beside the agent</td><td>Replay the straight path or the potential field on the identical mission, or nothing.</td></tr>
+    </table>
+    <ol>
+      <li>Press <b>▶ Run mission</b>. The five pipeline cards fill in (green ok, amber needs attention, red failed).</li>
+      <li>The 3D view shows the <b>target</b> (red frame), the <b>IK goal</b> (green ghost), the <b>estimated path</b> (dashed, coloured
+        per waypoint), and replays the agent's movement with its executed path (blue) next to the comparison (orange).</li>
+      <li><b>Mission report</b> tab: IK accuracy, predicted conflicts, outcome and final error for all three controllers.</li>
+      <li><b>Run statistics</b> runs N missions (about 0.25 s each) and reports IK success, how often the planned path was blocked,
+        and reached / collisions / stuck / final error per controller (<b>Statistics</b> tab).</li>
+    </ol>
+    <h2>Plots</h2>
+    <table>
+      <tr><th>For</th><th>Chart</th><th>What to look for</th></tr>
+      <tr><td rowspan="4">One mission</td><td>Clearance to the nearest obstacle (mm) – agent, potential field, straight path</td><td>Below the 0 line = contact; the dashed 80 mm line is the safety zone the reward keeps the agent out of.</td></tr>
+      <tr><td>Gripper distance to the IK goal (mm)</td><td>How fast each controller closes in; detours show as bumps, stuck runs as a flat line above 0.</td></tr>
+      <tr><td>Agent joint angles (°)</td><td>Smoothness of the motion; a joint slip shows as a jump at its event marker.</td></tr>
+      <tr><td>Self-collision risk (Level 1 classifier, %)</td><td>Stays low when the agent avoids self-collision-prone postures.</td></tr>
+      <tr><td rowspan="3">Statistics</td><td>Outcome per controller (reached / collision / stuck)</td><td>The headline comparison.</td></tr>
+      <tr><td>Minimum clearance per mission</td><td>How close each controller came to obstacles across all missions.</td></tr>
+      <tr><td>Level 1 IK error per mission (log₁₀ mm)</td><td>−3 = 0.001 mm; everything left of 0 is sub-millimetre.</td></tr>
+    </table>
+    <p>Vertical dashed markers show events (obstacle appeared, joint slip, final approach). Hover any chart for exact values.</p>
+
+    <h2>Saved runs</h2>
+    <p>Every mission and every statistics run is saved automatically in <code>ui/workspace/missions/&lt;id&gt;/</code>
+    (<code>ms_…</code> = one mission, <code>mb_…</code> = statistics): <code>meta.json</code> (summary) and <code>mission.json</code>
+    (full result incl. all frames). The <b>Saved runs</b> tab lists them with <b>Open</b> (report, 3D replay and plots come back exactly)
+    and <b>🗑 Delete</b> (asks Yes / No first).</p>
+    <p class="muted">The mission does not change any model and does not write to the Level 1 inference log. API: <code>POST /api/mission</code>, <code>POST /api/mission/batch</code>, <code>GET /api/missions</code>, <code>GET /api/missions/get?id=…</code>.</p>
+  </section>
+
+  <section id="m-results">
+    <h1>Mission – results</h1>
+    <p class="sub">xArm6 · Level 1 run <code>20260928-174703</code> (network + LM) · Level 2 agent <code>l2_20261013-185525</code> (best) · 100 missions per scenario, identical seeds.</p>
+    <div class="kpis">
+      <div class="kpi"><div class="v">100%</div><div class="l">targets solved by Level 1 IK (median 0.005 mm)</div></div>
+      <div class="kpi"><div class="v">95%</div><div class="l">dynamic missions completed by the DRL agent</div></div>
+      <div class="kpi"><div class="v">0%</div><div class="l">self-collisions in all missions</div></div>
+      <div class="kpi"><div class="v">0.002 mm</div><div class="l">median final gripper error vs. the target (completed missions)</div></div>
+    </div>
+    <table>
+      <tr><th>Scenario</th><th class="num">Path blocked*</th><th class="num">DRL agent<br>reached / coll. / stuck</th><th class="num">Potential field</th><th class="num">Straight path</th></tr>
+      <tr><td>Dynamic: drifting + sudden obstacles + joint slip</td><td class="num">53%</td><td class="num"><b class="ok">95 / 4 / 1</b></td><td class="num">95 / 5 / 0</td><td class="num">58 / 42 / 0</td></tr>
+      <tr><td>Static + sudden obstacles + joint slip</td><td class="num">53%</td><td class="num"><b class="ok">83 / 3 / 14</b></td><td class="num">76 / 3 / 21</td><td class="num">60 / 40 / 0</td></tr>
+    </table>
+    <p class="muted">* Share of missions whose estimated straight path collides with an obstacle known at the start (sudden obstacles come on top). Numbers in %.
+    Saved runs: <code>mb_20261013-211225_xarm6_dynamic_n100</code>, <code>mb_20261013-211258_xarm6_combined_n100</code> (Mission → Saved runs).</p>
+    <h2>What this shows</h2>
+    <ul>
+      <li><b>IK:</b> Level 1 (network + LM, seeded with the current joints) solved every target collision-free to sub-millimetre accuracy.</li>
+      <li><b>Path estimation:</b> about half of the straight paths would hit an obstacle – re-routing is necessary, not optional.</li>
+      <li><b>Movement:</b> the DRL agent cuts collisions from ~40 % (straight path) to 3–4 % and reaches the target as often as the potential field in the
+        dynamic case and 7 points more often in the static + sudden case, where the potential field gets stuck.</li>
+      <li><b>Remaining limit:</b> some hard missions end stuck (safe, but not arrived) – a fallback to another IK solution branch is the next improvement.</li>
+    </ul>
+  </section>
+
+  </main>
+</div>
+
+<script>
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const btns = [...document.querySelectorAll('#toc button')];
+  const levelBtns = [...document.querySelectorAll('.levels button')];
+  function show(id) {
+    if (id === 'level2') id = 'l2-problem';
+    if (!document.getElementById(id)) id = 'problem';
+    const level = id.startsWith('l2-') ? 'l2' : id.startsWith('m-') ? 'm' : 'l1';
+    levelBtns.forEach((b) => b.classList.toggle('active', b.dataset.level === level));
+    btns.forEach((b) => { b.hidden = b.dataset.l !== level; b.classList.toggle('active', b.dataset.s === id); });
+    document.querySelectorAll('main section').forEach((s) => s.classList.toggle('active', s.id === id));
+    document.querySelector('#toc button.active')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => window.scrollTo(0, 0));   // undo the browser's own #anchor jump
+  }
+  const go = (id) => { history.replaceState(null, '', '#' + id); show(id); };
+  btns.forEach((b) => b.addEventListener('click', () => go(b.dataset.s)));
+  levelBtns.forEach((b) => b.addEventListener('click', () => go(b.dataset.first)));
+  window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+  window.addEventListener('load', () => window.scrollTo(0, 0));
+</script>
+</body>
+</html>

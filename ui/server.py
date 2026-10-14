@@ -42,6 +42,8 @@ WORKSPACE = os.path.join(UI_DIR, "workspace")
 LIB = os.path.join(WORKSPACE, "library")
 DS_DIR = os.path.join(LIB, "datasets")
 RUNS_DIR = os.path.join(LIB, "runs")
+L2_DIR = os.path.join(WORKSPACE, "level2", "policies")   # Level 2 DRL policies (separate from the Level 1 library)
+MISSIONS_DIR = os.path.join(WORKSPACE, "missions")          # saved Mission runs (Level 1 + Level 2)
 STATIC_DIR = os.path.join(UI_DIR, "static")
 RUNNERS_DIR = os.path.join(UI_DIR, "runners")
 sys.path.insert(0, PROJECT_DIR)
@@ -410,6 +412,60 @@ def library():
     return {"datasets": datasets, "runs": runs, "project_datasets": project}
 
 
+def _job_uses(kind, item_id):
+    """True if the running job reads or writes this dataset / run."""
+    with STATE_LOCK:
+        job = STATE["job"]
+    if not job or job.get("status") != "running":
+        return False
+    params = job.get("params") or {}
+    if kind == "dataset":
+        return item_id in (params.get("dataset_id"), params.get("ds_id"))
+    if kind == "policy":
+        return item_id == params.get("policy_id")
+    return item_id == params.get("run_id")
+
+
+def delete_item(body):
+    """Permanently delete a library dataset or run (the UI asks for confirmation first).
+
+    Deleting a dataset with with_runs=True also deletes the runs trained on it; otherwise
+    those runs keep their models but lose their test samples and dataset browsing.
+    """
+    kind, item_id = body.get("kind"), str(body.get("id") or "")
+    if kind not in ("dataset", "run", "policy", "mission"):
+        raise ValueError("kind must be 'dataset', 'run', 'policy' or 'mission'")
+    if item_id.startswith("project:"):
+        raise ValueError("project data/ files are read-only and cannot be deleted from the UI")
+    root = {"dataset": DS_DIR, "run": RUNS_DIR, "policy": L2_DIR, "mission": MISSIONS_DIR}[kind]
+    if not item_id or os.path.basename(item_id) != item_id or item_id in (".", ".."):
+        raise ValueError(f"bad {kind} id")
+    with LIB_LOCK:
+        target = os.path.join(root, item_id)
+        if not os.path.isdir(target):
+            raise FileNotFoundError(f"no {kind} {item_id}")
+        runs = [r["id"] for r in run_entries() if r.get("dataset_id") == item_id] \
+            if kind == "dataset" and body.get("with_runs") else []
+        for k, i in [(kind, item_id)] + [("run", r) for r in runs]:
+            if _job_uses(k, i):
+                raise RuntimeError(f"{k} {i} is used by the running job – stop it first")
+        deleted = []
+        for r in runs:
+            shutil.rmtree(os.path.join(RUNS_DIR, r))
+            deleted.append({"kind": "run", "id": r})
+        shutil.rmtree(target)
+        deleted.append({"kind": kind, "id": item_id})
+    # drop cached data / models of what was removed
+    for path in [p for p in _DS_CACHE if p.startswith(target + os.sep)]:
+        _DS_CACHE.pop(path, None)
+    gone = {d["id"] for d in deleted if d["kind"] == "run"}
+    with _MODEL_LOCK:
+        for key in [k for k in _MODELS if k[0] in gone]:
+            _MODELS.pop(key, None)
+    _log("[library] deleted " + ", ".join(f"{d['kind']} {d['id']}" for d in deleted))
+    return {"deleted": deleted}
+
+
 def overlap_info(run_m, ds_m):
     """Does evaluating this model on this dataset measure generalisation, or
     does the dataset share rows with what the model was trained on?"""
@@ -724,8 +780,9 @@ def infer(body):
         }
         out["fk_refined"] = f_ref
 
-    with open(os.path.join(run_dir(run_id), "inference_log.jsonl"), "a", encoding="utf-8") as f:
-        f.write(json.dumps(rec) + "\n")
+    if body.get("log", True):
+        with open(os.path.join(run_dir(run_id), "inference_log.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec) + "\n")
     return out
 
 
@@ -799,7 +856,8 @@ def dataset_cloud(ds_id, max_points=6000):
 
 JOB_LOCK = threading.Lock()
 _PROC = {"proc": None, "ps": None, "meta_path": None}
-RUNNER_FILES = {"generate": "gen_runner.py", "train": "train_runner.py", "evaluate": "eval_runner.py"}
+RUNNER_FILES = {"generate": "gen_runner.py", "train": "train_runner.py", "evaluate": "eval_runner.py",
+                "l2train": "l2_runner.py", "l2eval": "l2_runner.py"}
 
 
 def _set_job(**kw):
@@ -853,6 +911,8 @@ def _reader(proc, kind):
                     STATE["epochs"].append(ev)
             if t in ("gen_start", "gen_sample", "train_sample", "epoch_end", "phase", "eval_start", "eval_progress"):
                 _set_job(progress={k: ev.get(k) for k in ("phase", "epoch", "epochs", "batch", "nb", "i", "n") if k in ev})
+            elif t in ("l2_update", "l2_eval_progress"):
+                _set_job(progress={k: ev.get(k) for k in ("update", "updates", "steps", "success_pct", "collision_pct", "scenario", "i", "n") if k in ev})
             HUB.publish(ev)
         elif line.strip() and "pybullet build time" not in line:
             _log(line)
@@ -869,7 +929,7 @@ def _reader(proc, kind):
             shutil.rmtree(os.path.dirname(mp), ignore_errors=True)
         else:
             m = read_json(mp)
-            if m and m.get("status") in ("running", "generating"):
+            if m and m.get("status") in ("running", "generating", "evaluating"):
                 m["status"] = final
                 write_json(mp, m)
     _log(f"[{kind}] finished with exit code {code}")
@@ -1030,6 +1090,329 @@ def job_evaluate(body):
               "refine": _refine_settings(body.get("refine")),
               "max_samples": int(body.get("max_samples", 0)), "overlap": overlap_info(m, ds)}
     start_job("evaluate", params, cwd=run_dir(run_id))
+
+
+# --------------------------------------------------------------------------
+# Level 2: DRL re-routing policies (level2/ package). Kept apart from Level 1.
+# --------------------------------------------------------------------------
+
+def l2_meta(pid):
+    d = os.path.join(L2_DIR, pid)
+    if os.path.basename(pid) != pid or not os.path.isdir(d):
+        raise FileNotFoundError(f"no policy {pid}")
+    m = read_json(os.path.join(d, "meta.json")) or {"id": pid}
+    m["has_policy"] = os.path.isfile(os.path.join(d, "policy.pt"))
+    return m
+
+
+def l2_policies():
+    os.makedirs(L2_DIR, exist_ok=True)
+    out = []
+    for d in os.listdir(L2_DIR):
+        try:
+            m = l2_meta(d)
+        except FileNotFoundError:
+            continue
+        m.pop("history", None)
+        out.append(m)
+    out.sort(key=lambda m: m.get("created") or 0, reverse=True)
+    return out
+
+
+def l2_detail(pid):
+    m = l2_meta(pid)
+    m["history"] = read_json(os.path.join(L2_DIR, pid, "history.json")) or []
+    return m
+
+
+def job_l2_train(body):
+    robot = body.get("robot", "xarm6")
+    if robot not in ("xarm6", "kuka_iiwa"):
+        raise ValueError("Level 2 supports xarm6 and kuka_iiwa")
+    steps = int(body.get("steps", 3_000_000))
+    if not 50_000 <= steps <= 50_000_000:
+        raise ValueError("steps must be between 50,000 and 50,000,000")
+    os.makedirs(L2_DIR, exist_ok=True)
+    pid = _unique_dir(L2_DIR, f"l2_{stamp()}_{robot}")
+    d = os.path.join(L2_DIR, pid)
+    os.makedirs(d)
+    params = {"mode": "train", "policy_id": pid, "policy_dir": d, "robot": robot, "steps": steps,
+              "envs": int(body.get("envs", 80)), "seed": int(body.get("seed", 0)), "eval_n": int(body.get("eval_n", 60)),
+              "device": body.get("device") or None}
+    mp = os.path.join(d, "meta.json")
+    write_json(mp, {"id": pid, "robot": robot, "status": "running", "created": time.time(),
+                    "params": {k: v for k, v in params.items() if k not in ("policy_dir", "mode")}})
+    start_job("l2train", params, cwd=d, meta_path=mp)
+    return pid
+
+
+def job_l2_eval(body):
+    m = l2_meta(body["id"])
+    if not m["has_policy"]:
+        raise ValueError("this policy has no policy.pt yet")
+    params = {"mode": "eval", "policy_id": m["id"], "policy_dir": os.path.join(L2_DIR, m["id"]),
+              "robot": m["robot"], "n": max(10, min(500, int(body.get("n", 100))))}
+    start_job("l2eval", params, cwd=params["policy_dir"])
+
+
+_L2_ENVS, _L2_LOCK = {}, threading.Lock()
+
+
+def _l2_env(robot, pol):
+    """Cached Level 2 env in the settings the policy was trained with (older policies: straight-line base).
+    Call with _L2_LOCK held."""
+    from level2.env import ReachAvoidEnv
+    env_cfg = dict({"base": "straight"}, **(pol.meta.get("env_cfg") or {})) if pol else {}
+    key = (robot, json.dumps(env_cfg, sort_keys=True))
+    if key not in _L2_ENVS:
+        _L2_ENVS[key] = ReachAvoidEnv(robot, seed=0, **env_cfg)
+    return _L2_ENVS[key]
+
+
+def l2_rollout(body):
+    """Record one episode for the 3D playback: the policy and the straight-line baseline on the same scenario."""
+    from level2.env import ReachAvoidEnv
+    from level2.evaluate import SCENARIOS, run_episode
+    from level2.ppo import NumpyPolicy
+    pid = body.get("id")
+    pol = NumpyPolicy(os.path.join(L2_DIR, pid, "policy.pt")) if pid else None
+    robot = pol.meta["robot"] if pol else body.get("robot", "xarm6")
+    name = body.get("scenario", "combined")
+    if name not in SCENARIOS:
+        raise ValueError(f"unknown scenario {name}")
+    seed = int(body.get("seed", 0))
+    with _L2_LOCK:
+        env = _l2_env(robot, pol)
+        out = {"robot": robot, "scenario": name, "seed": seed}
+        for label, ctrl in (("policy", pol), ("baseline", None), ("apf", "apf")):
+            if label == "policy" and pol is None:
+                continue
+            ep = run_episode(env, ctrl, seed, SCENARIOS[name], record=True)
+            out[label] = ep
+        # start / goal poses for drawing (same seed -> same start and goal for both controllers)
+        env.reset(seed=seed, scenario=SCENARIOS[name])
+        out["start_links"] = env.link_frames()
+        env._set_q(env.q_goal)
+        out["goal_links"] = env.link_frames()
+        out["goal_ee"] = [round(float(v), 4) for v in env.ee_goal]
+        env._set_q(env.q)
+    return out
+
+
+# --------------------------------------------------------------------------
+# Mission = Level 1 + Level 2: target pose -> IK (Level 1 run) -> trajectory estimate -> DRL execution
+# --------------------------------------------------------------------------
+
+MISSION_SCENARIOS = {
+    "dynamic":  {"static": True, "sudden": True, "slip": True, "moving": True},   # everything, obstacles drift
+    "combined": {"static": True, "sudden": True, "slip": True},
+    "sudden":   {"static": False, "sudden": True, "slip": False},
+    "static":   {"static": True, "sudden": False, "slip": False},
+    "slip":     {"static": False, "sudden": False, "slip": True},
+    "free":     {"static": False, "sudden": False, "slip": False},                 # no obstacles: pure IK + motion
+}
+
+
+def _same_pose_near(q, ref, lim):
+    """Shift each joint by multiples of 360 deg (same pose) to the copy inside the limits closest to ref."""
+    out = np.array(q, float)
+    for j in range(len(out)):
+        cands = [out[j] + 2 * np.pi * k for k in range(-2, 3) if lim[j, 0] - 1e-9 <= out[j] + 2 * np.pi * k <= lim[j, 1] + 1e-9]
+        if cands:
+            out[j] = min(cands, key=lambda v: abs(v - ref[j]))
+    return out
+
+
+def _ee_pose(env):
+    st = p.getLinkState(env.body, env.ee, computeForwardKinematics=True, physicsClientId=env.cid)
+    return np.array(st[4]), np.array(st[5])
+
+
+def _final_approach(env, q_goal, ep=None, dq=0.01, max_steps=40):
+    """After the agent arrives (within 2 cm / 0.06 rad), servo exactly onto the IK goal in small,
+    collision-checked steps - like a controller's final settling. Recorded frames are appended to ep."""
+    steps, blocked = 0, False
+    while steps < max_steps and np.max(np.abs(q_goal - env.q)) > 1e-5:
+        q = env.q + np.clip(q_goal - env.q, -dq, dq)
+        env._set_q(q)
+        env._update_clearances()
+        clear = min((v[0] for v in env._clr.values()), default=0.5)
+        if clear <= 0.0 or env._self_collision():
+            env._set_q(env.q)                     # would touch something: stay where the agent stopped
+            blocked = True
+            break
+        env.q = q
+        steps += 1
+        if ep is not None and "frames" in ep:
+            ep["frames"].append({"t": env.t + steps, "q": [round(float(v), 5) for v in env.q], "links": env.link_frames(),
+                                 "obstacles": env.obstacles(), "clearance": round(float(clear), 4), "phase": "final approach"})
+    return {"steps": steps, "blocked": blocked}
+
+
+def mission(body, record=True, save=False):
+    from level2.evaluate import run_episode
+    from level2.ppo import NumpyPolicy
+    l1, pid = body["l1_run"], body["l2_policy"]
+    pol = NumpyPolicy(os.path.join(L2_DIR, pid, "policy.pt"))
+    robot = pol.meta["robot"]
+    m1 = run_meta(l1)
+    if m1["robot"] != robot:
+        raise ValueError(f"the Level 1 run is for {m1['robot']} but the Level 2 agent is for {robot}")
+    name = body.get("scenario", "dynamic")
+    if name not in MISSION_SCENARIOS:
+        raise ValueError(f"unknown scenario {name}")
+    sc, seed = MISSION_SCENARIOS[name], int(body.get("seed", 0))
+    tgt = body.get("target") or {"mode": "random"}
+
+    # 1) start configuration (the arm's current joints) and the target pose
+    with _L2_LOCK:
+        env = _l2_env(robot, pol)
+        env.reset(seed=seed, scenario={"static": False, "sudden": False, "slip": False})
+        q_start = env.q.copy()
+        if tgt.get("mode") == "custom":
+            pos = [float(v) for v in tgt["pos"]]
+            orn = list(p.getQuaternionFromEuler([np.radians(float(a)) for a in tgt["rpy_deg"]]))
+        else:                                        # a reachable target: the pose of a random collision-free configuration
+            env._set_q(env.q_goal)
+            pe, oe = _ee_pose(env)
+            pos, orn = [float(v) for v in pe], [float(v) for v in oe]
+            env._set_q(env.q)
+        lim = env.lim.copy()
+        start_links = env.link_frames()
+
+    # 2) Level 1: neural IK + LM refinement, seeded with the current joints
+    t0 = time.perf_counter()
+    res = infer({"run_id": l1, "target_pos": pos, "target_orn": orn, "seed_q": [float(v) for v in q_start],
+                 "refine_method": "lm", "refine_iters": 30, "refine_restarts": 16, "log": False, "source": "mission"})
+    rec, ref = res["record"], res["record"].get("refined") or {}
+    q_ik = _same_pose_near(ref.get("q") or rec["q_pred"], q_start, lim)
+    ik = {"run": l1, "net_pos_err_mm": rec["pos_err_mm"], "net_orn_err_deg": rec["orn_err_deg"], "net_ms": rec["latency_ms"],
+          "pos_err_mm": ref.get("pos_err_mm", rec["pos_err_mm"]), "orn_err_deg": ref.get("orn_err_deg", rec["orn_err_deg"]),
+          "ms": (time.perf_counter() - t0) * 1000, "self_collision": ref.get("self_collision", rec["pred_self_collision"]),
+          "limit_violation": ref.get("limit_violation", rec["limit_violation"]), "winner": ref.get("winner"),
+          "q": [round(float(v), 5) for v in q_ik]}
+    ik["success"] = bool(ik["pos_err_mm"] <= 1.0 and ik["orn_err_deg"] <= 1.0 and not ik["self_collision"] and not ik["limit_violation"])
+    out = {"robot": robot, "scenario": name, "seed": seed, "target": {"mode": tgt.get("mode", "random"), "pos": pos, "orn": orn},
+           "start_links": start_links, "ik": ik}
+    if not ik["success"]:
+        out["verdict"] = "IK failed – no collision-free joint solution within 1 mm / 1°; the arm does not move."
+        return _save_mission(out, body) if save else out
+
+    with _L2_LOCK:
+        env = _l2_env(robot, pol)
+        # 3) trajectory estimate: the straight joint-space path to the IK goal, checked against the obstacles
+        #    known at the start and for self-collision (what a planner would predict before moving)
+        env.reset(seed=seed, scenario=sc, start=q_start, goal=q_ik)
+        planned = []
+        for t in np.linspace(0, 1, 40):
+            env._set_q(q_start + t * (q_ik - q_start))
+            d = min((env._clearance(k)[0] for k in range(len(env.obs_bodies)) if env.active[k]), default=0.5)
+            planned.append({"p": [round(float(v), 4) for v in env._ee()], "self": bool(env._self_collision()), "clear": round(float(d), 4)})
+        env._set_q(q_ik)
+        goal_links = env.link_frames()
+        env._set_q(env.q)
+        pts = np.array([w["p"] for w in planned])
+        out["planned"] = planned
+        out["estimate"] = {
+            "waypoints": len(planned), "joint_path_rad": float(np.linalg.norm(q_ik - q_start)),
+            "ee_path_m": float(np.sum(np.linalg.norm(np.diff(pts, axis=0), axis=1))),
+            "obstacle_conflicts": sum(w["clear"] <= 0 for w in planned), "near_misses": sum(0 < w["clear"] < 0.05 for w in planned),
+            "self_collisions": sum(w["self"] for w in planned), "min_clearance_m": min(w["clear"] for w in planned),
+            "obstacles_at_start": int(env.active.sum()),
+        }
+        out["goal_links"], out["goal_ee"] = goal_links, [round(float(v), 4) for v in env.ee_goal]
+
+        # 4) execution: DRL agent, plus the two classical controllers on the identical mission
+        out["episodes"] = {}
+        for label, ctrl in (("policy", pol), ("baseline", None), ("apf", "apf")):
+            ep = run_episode(env, ctrl, seed, sc, record=record, start=q_start, goal=q_ik)
+            if ep["outcome"] == "success":
+                ep["final_approach"] = _final_approach(env, q_ik, ep if record else None)
+            pe, oe = _ee_pose(env)                       # 5) final gripper pose vs. the original target
+            ep["final_pos_err_mm"] = float(np.linalg.norm(pe - np.array(pos)) * 1000)
+            ep["final_orn_err_deg"] = quat_angle_deg(list(oe), orn)
+            out["episodes"][label] = ep
+    a = out["episodes"]["policy"]
+    out["verdict"] = ("Target reached" if a["outcome"] == "success" else
+                      f"Not reached ({a['outcome']}{' – ' + a['collision'] if a.get('collision') else ''})")
+    return _save_mission(out, body) if save else out
+
+
+def _ep_summary(e):
+    return {k: e.get(k) for k in ("outcome", "collision", "steps", "min_clearance_m", "final_pos_err_mm", "final_orn_err_deg")} | \
+        {"events": [x["type"] for x in e.get("events", [])]}
+
+
+def _save_mission(out, body, kind="single"):
+    """Every mission / statistics run gets its own folder in ui/workspace/missions/ (never overwritten)."""
+    os.makedirs(MISSIONS_DIR, exist_ok=True)
+    robot = out.get("robot") or "robot"
+    tag = f"_s{out['seed']}" if kind == "single" else f"_n{out['n']}"
+    mid = _unique_dir(MISSIONS_DIR, f"{'ms' if kind == 'single' else 'mb'}_{stamp()}_{robot}_{out.get('scenario', '')}{tag}")
+    d = os.path.join(MISSIONS_DIR, mid)
+    os.makedirs(d)
+    out["id"] = mid
+    meta = {"id": mid, "kind": kind, "created": time.time(), "robot": robot, "scenario": out.get("scenario"),
+            "l1_run": body.get("l1_run"), "l2_policy": body.get("l2_policy"),
+            "target": (body.get("target") or {}).get("mode", "random")}
+    if kind == "single":
+        meta.update(seed=out["seed"], verdict=out.get("verdict"), ik_pos_err_mm=out["ik"]["pos_err_mm"], ik_success=out["ik"]["success"],
+                    conflicts=(out.get("estimate") or {}).get("obstacle_conflicts"),
+                    episodes={k: _ep_summary(e) for k, e in (out.get("episodes") or {}).items()})
+    else:
+        meta.update(n=out["n"], seed=out["seed"], ik_success_pct=out["ik_success_pct"],
+                    controllers={k: {kk: c[kk] for kk in ("success_pct", "collision_pct", "timeout_pct")} for k, c in out["controllers"].items()})
+    write_json(os.path.join(d, "meta.json"), meta)
+    with open(os.path.join(d, "mission.json"), "w", encoding="utf-8") as f:
+        json.dump(out, f)
+    return out
+
+
+def missions_list():
+    os.makedirs(MISSIONS_DIR, exist_ok=True)
+    out = [m for m in (read_json(os.path.join(MISSIONS_DIR, d, "meta.json")) for d in os.listdir(MISSIONS_DIR)) if m]
+    out.sort(key=lambda m: m.get("created") or 0, reverse=True)
+    return out
+
+
+def mission_get(mid):
+    d = os.path.join(MISSIONS_DIR, mid)
+    if os.path.basename(mid) != mid or not os.path.isfile(os.path.join(d, "mission.json")):
+        raise FileNotFoundError(f"no saved mission {mid}")
+    with open(os.path.join(d, "mission.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def mission_batch(body):
+    n = max(1, min(100, int(body.get("n", 20))))
+    seed0 = int(body.get("seed", 1000))
+    rows, t0 = [], time.time()
+    for i in range(n):
+        rows.append(mission(dict(body, seed=seed0 + i), record=False))
+    per = [{"seed": r["seed"], "ik_success": r["ik"]["success"], "ik_pos_err_mm": r["ik"]["pos_err_mm"], "ik_ms": r["ik"]["ms"],
+            "conflicts": (r.get("estimate") or {}).get("obstacle_conflicts"),
+            "episodes": {k: _ep_summary(e) for k, e in (r.get("episodes") or {}).items()}} for r in rows]
+    ok = [r for r in rows if r["ik"]["success"]]
+    pct = lambda xs, f: 100.0 * sum(1 for x in xs if f(x)) / max(1, len(xs))
+    ctrl = {}
+    for c in ("policy", "baseline", "apf"):
+        eps = [r["episodes"][c] for r in ok]
+        succ = [e for e in eps if e["outcome"] == "success"]
+        ctrl[c] = {"success_pct": pct(eps, lambda e: e["outcome"] == "success"),
+                   "collision_pct": pct(eps, lambda e: e["outcome"] == "collision"),
+                   "self_collision_pct": pct(eps, lambda e: e.get("collision") == "self"),
+                   "timeout_pct": pct(eps, lambda e: e["outcome"] == "timeout"),
+                   "final_pos_err_mm": float(np.median([e["final_pos_err_mm"] for e in succ])) if succ else None,
+                   "final_orn_err_deg": float(np.median([e["final_orn_err_deg"] for e in succ])) if succ else None,
+                   "steps": float(np.mean([e["steps"] for e in succ])) if succ else None}
+    out = {"n": n, "seed": seed0, "robot": rows[0]["robot"] if rows else None, "scenario": body.get("scenario", "dynamic"), "secs": time.time() - t0,
+            "l1_run": body.get("l1_run"), "l2_policy": body.get("l2_policy"), "rows": per,
+            "ik_success_pct": pct(rows, lambda r: r["ik"]["success"]),
+            "ik_pos_err_mm": float(np.median([r["ik"]["pos_err_mm"] for r in rows])),
+            "ik_ms": float(np.mean([r["ik"]["ms"] for r in rows])),
+            "predicted_conflict_pct": pct(ok, lambda r: r["estimate"]["obstacle_conflicts"] > 0),
+            "controllers": ctrl}
+    return _save_mission(out, body, kind="batch")
 
 
 def _refine_settings(r):
@@ -1212,6 +1595,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, dataset_cloud(qs["ds"]))
             if path == "/api/test_sample":
                 return self._send(200, self._test_sample(qs["run"], qs.get("k")))
+            if path == "/api/missions":
+                return self._send(200, missions_list())
+            if path == "/api/missions/get":
+                return self._send(200, mission_get(qs["id"]))
+            if path == "/api/l2/policies":
+                return self._send(200, l2_policies())
+            if path == "/api/l2/policy":
+                return self._send(200, l2_detail(qs["id"]))
             if path == "/api/state":
                 return self._send(200, self._snapshot())
             return self._send(404, {"error": "not found"})
@@ -1235,6 +1626,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, infer(body))
             if path == "/api/stop":
                 return self._send(200, {"stopped": stop_job()})
+            if path == "/api/l2/train":
+                return self._send(200, {"ok": True, "id": job_l2_train(body)})
+            if path == "/api/l2/evaluate":
+                job_l2_eval(body)
+                return self._send(200, {"ok": True})
+            if path == "/api/mission":
+                return self._send(200, mission(body, save=True))
+            if path == "/api/mission/batch":
+                return self._send(200, mission_batch(body))
+            if path == "/api/l2/rollout":
+                return self._send(200, l2_rollout(body))
+            if path == "/api/delete":
+                out = delete_item(body)
+                HUB.publish({"type": "library_changed"})
+                return self._send(200, out)
             if path == "/api/import_project":
                 added = import_project()
                 HUB.publish({"type": "library_changed"})

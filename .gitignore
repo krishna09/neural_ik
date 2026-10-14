@@ -12,3 +12,7 @@ data/*.npz
 # exported Docker images (multi-GB - copy them with a USB drive, never commit)
 *.tar
 *.tar.sha256
+
+# Level 2: weight cache and command-line training runs
+level2/.cache/
+level2/runs/

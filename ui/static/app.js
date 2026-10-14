@@ -533,15 +533,17 @@ function fillSelects() {
 function renderLibrary() {
   const { datasets, runs, project_datasets: proj } = state.lib;
   const dsRows = datasets.map((d) => `<tr>
+      <td class="acts"><button data-act="ds-browse" data-id="${d.id}">Browse</button> <button data-act="ds-train" data-id="${d.id}" ${d.status !== 'ready' ? 'disabled' : ''}>Train on</button>
+          <button class="del" data-act="ds-delete" data-id="${d.id}" title="Delete this dataset">🗑 Delete</button></td>
       <td><span class="id">${esc(d.id)}</span></td><td>${d.robot}</td>
       <td class="num">${(d.n ?? 0).toLocaleString()}</td><td class="num">${d.seed ?? '?'}</td>
       <td class="num">${d.n ? pct((100 * (d.n_colliding ?? 0)) / d.n) : '—'}</td>
       <td>${esc(d.source)}${genIdOf(d) !== 'base' ? `<span class="tag good" title="${esc((d.generator && d.generator.file) || '')}">${esc(genShort(genIdOf(d)))} generator</span>` : ''}${d.split && d.split.mode === 'custom' ? `<span class="tag" title="${esc(d.split.note || '')}">custom split</span>` : ''}${d.status !== 'ready' ? `<span class="tag warn">${d.status}</span>` : ''}</td>
       <td>${when(d.created)}</td>
       <td>${d.used_by.length ? d.used_by.map((r) => `<span class="id">${r}</span>`).join(', ') : '<span class="hint">—</span>'}</td>
-      <td><button data-act="ds-browse" data-id="${d.id}">Browse</button> <button data-act="ds-train" data-id="${d.id}" ${d.status !== 'ready' ? 'disabled' : ''}>Train on</button></td></tr>`).join('');
-  const projRows = proj.map((d) => `<tr><td><span class="id">${esc(d.file)}</span></td><td>${d.robot}</td><td colspan="5" class="muted">live project file, read-only – "Import from project" copies it into the library</td>
-      <td></td><td><button data-act="ds-browse" data-id="${d.id}">Browse</button></td></tr>`).join('');
+</tr>`).join('');
+  const projRows = proj.map((d) => `<tr><td class="acts"><button data-act="ds-browse" data-id="${d.id}">Browse</button> <span class="hint">read-only</span></td><td><span class="id">${esc(d.file)}</span></td><td>${d.robot}</td><td colspan="5" class="muted">live project file, read-only – "Import from project" copies it into the library</td>
+      <td></td></tr>`).join('');
   const runRows = runs.map((r) => {
     const te = r.metrics && r.metrics.test, va = r.metrics && r.metrics.val;
     const k = runTol(r);                              // each run is shown at its own training tolerance
@@ -550,6 +552,9 @@ function renderLibrary() {
       : ev ? `${pct(ev.summary.acc_pos[k])} <span class="tag good">independent eval</span>` : '<span class="hint">no test split</span>';
     const es = r.early_stop_result;
     return `<tr class="${r.id === state.selRun ? 'sel' : ''}">
+      <td class="acts"><button data-act="run-details" data-id="${r.id}">Details</button>
+          <button data-act="run-infer" data-id="${r.id}" ${r.has_models ? '' : 'disabled'}>Inference</button>
+          <button class="del" data-act="run-delete" data-id="${r.id}" title="Delete this run and its models">🗑 Delete</button></td>
       <td><span class="id">${r.id}</span></td><td>${r.robot}</td><td>${esc(modelLabel(r.model))}</td><td>${KIND[r.kind] || r.kind}</td>
       <td>${r.status === 'done' ? '<span class="tag good">done</span>' : `<span class="tag ${r.status === 'running' ? 'warn' : 'bad'}">${esc(r.status)}</span>`}${es ? `<span class="tag" title="target met – stopped automatically">auto-stopped</span>` : ''}</td>
       <td><span class="id">${esc(r.dataset_id || '?')}</span></td>
@@ -558,18 +563,17 @@ function renderLibrary() {
       <td class="num">${va ? pct(va.acc_pos[k]) : '—'}</td>
       <td class="num">${testCell}</td>
       <td class="num">${r.evaluations.length}</td><td class="num">${r.n_inferences}</td><td>${when(r.created)}</td>
-      <td><button data-act="run-details" data-id="${r.id}">Details</button>
-          <button data-act="run-infer" data-id="${r.id}" ${r.has_models ? '' : 'disabled'}>Inference</button></td></tr>`;
+</tr>`;
   }).join('');
   $('library-pane').innerHTML = `<div class="pane-pad">
     <div class="toolbar"><span class="grow hint">Everything lives in <code>ui/workspace/library/</code>; each dataset and each training run has its own folder + <code>meta.json</code> and is never overwritten. Accuracy = % of predictions whose end-effector lands within the run's <b>tolerance</b> of the target (set when training; other tolerances in Run details).</span>
       <button id="import-btn" title="Copy the project's data/*.npz and models/*.pt into the library (the project files are only read)">Import from project</button></div>
     <h3 class="sec">Datasets <small>${datasets.length} saved</small></h3>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Dataset</th><th>Robot</th><th class="num">Samples</th><th class="num">Seed</th><th class="num">Colliding</th><th>Source</th><th>Created</th><th>Used by runs</th><th></th></tr></thead>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Actions</th><th>Dataset</th><th>Robot</th><th class="num">Samples</th><th class="num">Seed</th><th class="num">Colliding</th><th>Source</th><th>Created</th><th>Used by runs</th></tr></thead>
       <tbody>${dsRows}${projRows || ''}</tbody></table></div>
     <h3 class="sec">Trained models (runs) <small>${runs.length} saved</small></h3>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Run</th><th>Robot</th><th>Model</th><th>Origin</th><th>Status</th><th>Trained on</th><th class="num">Epochs</th>
-      <th class="num">Tolerance</th><th class="num">Val acc</th><th class="num">Test acc</th><th class="num">Evals</th><th class="num">Inferences</th><th>Created</th><th></th></tr></thead>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Actions</th><th>Run</th><th>Robot</th><th>Model</th><th>Origin</th><th>Status</th><th>Trained on</th><th class="num">Epochs</th>
+      <th class="num">Tolerance</th><th class="num">Val acc</th><th class="num">Test acc</th><th class="num">Evals</th><th class="num">Inferences</th><th>Created</th></tr></thead>
       <tbody>${runRows || '<tr><td colspan="14" class="muted">no trained models yet</td></tr>'}</tbody></table></div></div>`;
   $('import-btn').onclick = async () => {
     try {
@@ -598,6 +602,8 @@ $('library-pane').addEventListener('click', async (e) => {
       $('tr-ds').value = id;
       openPanel('tr-ds');
       toast('Training dataset selected – press Train in panel 3.');
+    } else if (b.dataset.act === 'ds-delete' || b.dataset.act === 'run-delete') {
+      await deleteFromLibrary(b.dataset.act === 'ds-delete' ? 'dataset' : 'run', id);
     } else if (b.dataset.act === 'run-details') {
       await selectRun(id);
       switchTab('details-pane');
@@ -611,6 +617,53 @@ $('library-pane').addEventListener('click', async (e) => {
     }
   } catch (err) { toast(err.message, true); }
 });
+
+// Delete a library dataset / run after an explicit Yes in the confirm dialog
+async function deleteFromLibrary(kind, id) {
+  const running = state.job && state.job.status === 'running';
+  let html, check = null;
+  if (kind === 'dataset') {
+    const d = dsById(id);
+    const runs = d.used_by || [];
+    html = `<p>Permanently delete dataset <span class="id">${esc(id)}</span> (${(d.n ?? 0).toLocaleString()} samples, ${esc(d.robot)})?</p>`
+      + (runs.length ? `<p>It is used by ${runs.length} run(s): ${runs.map((r) => `<span class="id">${esc(r)}</span>`).join(', ')}.
+         Without it those runs keep their models but lose their held-out test samples and dataset browsing.</p>` : '');
+    if (runs.length) check = `Also delete the ${runs.length} run(s) trained on it`;
+  } else {
+    const r = runById(id);
+    html = `<p>Permanently delete run <span class="id">${esc(id)}</span> (${esc(r.robot)}, ${esc(modelLabel(r.model))})?</p>
+      <p>Its trained models, metrics, training renders and inference log are removed. The dataset it was trained on is kept.</p>`;
+  }
+  if (running) html += '<p class="hint">A job is running; items it is using cannot be deleted until it finishes.</p>';
+  const ans = await confirmDialog({ title: kind === 'dataset' ? 'Delete dataset?' : 'Delete run?', html, check, yes: 'Yes, delete', no: 'No, keep it' });
+  if (!ans.ok) return;
+  const r = await api('/api/delete', { kind, id, with_runs: ans.checked });
+  const gone = new Set(r.deleted.map((x) => x.id));
+  if (gone.has(state.selRun)) { state.selRun = null; state.runDetail = null; renderDetails(); renderGallery(); renderInfLog(); }
+  if (gone.has(state.dsId)) state.dsId = null;
+  toast(`Deleted ${r.deleted.map((x) => `${x.kind} ${x.id}`).join(', ')}.`);
+  await refreshLibrary();
+}
+
+// Yes / No dialog; resolves { ok, checked }
+function confirmDialog({ title, html, check, yes = 'Yes', no = 'No' }) {
+  const dlg = $('confirm');
+  $('confirm-title').textContent = title;
+  $('confirm-body').innerHTML = html;
+  $('confirm-check-wrap').hidden = !check;
+  $('confirm-check').checked = false;
+  $('confirm-check-text').textContent = check || '';
+  $('confirm-yes').textContent = yes;
+  $('confirm-no').textContent = no;
+  return new Promise((resolve) => {
+    const done = (ok) => { dlg.close(); resolve({ ok, checked: !!check && $('confirm-check').checked }); };
+    $('confirm-yes').onclick = () => done(true);
+    $('confirm-no').onclick = () => done(false);
+    dlg.oncancel = (e) => { e.preventDefault(); done(false); };   // Esc = No
+    dlg.showModal();
+    $('confirm-no').focus();                                        // safe default
+  });
+}
 
 function openPanel(childId) {
   const det = $(childId).closest('details');
@@ -807,7 +860,7 @@ function renderDetails() {
         <label class="hint" title="Finish the network's answer with Levenberg-Marquardt (refine/lm_solver.py) and check it again with PyBullet"><input type="checkbox" id="ev-ref" checked> LM refinement</label>
         <label class="hint">iterations <input id="ev-ref-it" type="number" min="1" max="500" value="30" style="width:60px"></label>
         <label class="hint" title="Extra random starting points, only for targets still outside 1 mm / 1° after the network's start">restarts <input id="ev-ref-rs" type="number" min="0" max="256" value="16" style="width:60px"></label>
-        <button id="ev-btn" class="primary">Evaluate</button><span id="ev-overlap" class="hint grow"></span>` : '<span class="hint">This run has no saved model.</span>'}</div></div>
+        <button id="ev-btn" class="primary">Evaluate</button><button id="ev-stop" class="danger" title="Stop the running evaluation">Stop</button><span id="ev-overlap" class="hint grow"></span>` : '<span class="hint">This run has no saved model.</span>'}</div></div>
   </div>`;
 
   $('thr-pos').onchange = (e) => { state.posT = e.target.value; rerenderAccuracy(); };
@@ -833,6 +886,10 @@ function renderDetails() {
     const indep = [...$('ev-ds').options].find((o) => overlapPreview(m, o.value)?.level === 'independent');
     if (indep) $('ev-ds').value = indep.value;
     upd();
+    const running = state.job && state.job.status === 'running';
+    $('ev-btn').disabled = !!running;
+    $('ev-stop').disabled = !running;
+    $('ev-stop').onclick = () => api('/api/stop', {}).then(() => toast('Evaluation stopped.')).catch((e) => toast(e.message, true));
     $('ev-btn').onclick = async () => {
       try {
         await api('/api/evaluate', {
@@ -1133,6 +1190,12 @@ $('tr-btn').onclick = async () => {
 };
 
 $('stop-btn').onclick = () => api('/api/stop', {}).catch((e) => toast(e.message, true));
+// header ■ Stop: stops whatever job is running (asks first)
+$('job-stop').onclick = async () => {
+  if (!confirm('Stop the running job? Training keeps what it has learned so far; an evaluation is discarded.')) return;
+  try { await api('/api/stop', {}); toast('Stopping…'); } catch (e) { toast(e.message, true); }
+};
+
 
 function applyJob(job) {
   state.job = job;
@@ -1149,6 +1212,8 @@ function applyJob(job) {
   $('job-text').textContent = txt;
   for (const id of ['gen-btn', 'tr-btn']) $(id).disabled = running;
   const ev = $('ev-btn'); if (ev) ev.disabled = running;
+  const evStop = $('ev-stop'); if (evStop) evStop.disabled = !running;
+  $('job-stop').hidden = !running;
   $('stop-btn').disabled = !running;
   $('robot-select').disabled = running && job.kind !== 'evaluate';
 }
@@ -1681,7 +1746,7 @@ function switchTab(id) {
 document.querySelectorAll('.tab').forEach((t) => (t.onclick = () => switchTab(t.dataset.tab)));
 $('run-select').onchange = (e) => selectRun(e.target.value).catch((err) => toast(err.message, true));
 $('expand-btn').onclick = () => {
-  const big = document.documentElement.style.getPropertyValue('--bottom-h') === '62vh';
+  const big = (parseFloat(getComputedStyle($('bottom')).height) || 0) > window.innerHeight * 0.5;
   document.documentElement.style.setProperty('--bottom-h', big ? '330px' : '62vh');
 };
 $('show-cloud').onchange = (e) => (viewer.cloud.visible = e.target.checked);
