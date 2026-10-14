@@ -30,7 +30,7 @@ The project itself is never modified: the scripts read `data/`, `models/`, `ui/w
 | PyBullet | 3.2.7, built from source for Python 3.13 |
 | Matplotlib / Pillow | 3.11.2 / 12.3.0 |
 | Playwright + Chromium | 1.64.0 + Chromium 1194 (WebGL through SwiftShader) |
-| Three.js (renderer) | r160, loaded by `scripts/render/stage.html` |
+| Three.js (renderer) | r160: the Studio's copy in `ui/static/vendor/three`, plus two MIT add-ons in `scripts/render/vendor/` |
 | Speech | kokoro-onnx 0.6.1, onnxruntime 1.31.0, Kokoro-82M v1.0 (Apache-2.0), voice `af_heart` |
 | Video | FFmpeg 6.1.1 (libx264, AAC) |
 | Deck | Node 22, pptxgenjs 3.12.0, python-pptx 1.0.2, lxml 6.1.3 |

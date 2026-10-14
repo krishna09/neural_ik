@@ -69,9 +69,14 @@ export default async function (ctx) {
       <span class="k">IK training rows</span><span class="v">collision-free only</span></div></div>`,
     { right: '72px', top: '320px' });
   const ctag = el('<div class="label3d" style="border-color:rgba(208,59,59,.7);color:#ffb3b3">links in contact</div>');
+  // the near-limit caption starts with the first near-limit sample, together with the phase badge
+  const k2 = S.findIndex((s) => s.phase === 'near-limit');
+  let t2 = slowEnd;
+  while (k2 >= 0 && t2 < c.fast2 && idxAt(t2) < k2) t2 += 0.05;
   const cap = captions(ctx, [
     [c.slow0, slowEnd, 'Each sample: random joint angles → pose → <em>collision label</em>'],
-    [slowEnd, c.fast2, '30 % of samples sit near the joint limits, where self-collisions concentrate'],
+    [slowEnd, t2, '70 % of samples: uniform inside the joint limits'],
+    [t2, c.fast2, '30 % of samples sit near the joint limits, where self-collisions concentrate'],
     [c.cloud, D - 0.2, 'End-effector positions of 7,000 dataset rows: <span style="color:#7db4f5">free</span> and <span style="color:#ff8a8a">self-colliding</span>'],
   ]);
   const rowHTML = (s, isNew) => `<tr class="${isNew ? 'new' : ''}"><td>${s.i}</td>${s.q.map((v) => `<td>${num(deg(v), 0)}</td>`).join('')}
