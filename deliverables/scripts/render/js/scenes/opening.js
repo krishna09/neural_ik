@@ -23,7 +23,7 @@ export default async function (ctx) {
 
   const kicker = el('<div style="font-size:20px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)">STP 2026 · Team 06</div>', { left: '96px', top: '300px' });
   const title = el('<div class="title" style="position:absolute;left:96px;top:340px;font-size:68px;max-width:1180px;line-height:1.06">Neural Kinematics for Intelligent<br>Space Manipulators</div>', {});
-  const sub = el('<div class="subtitle" style="left:96px;top:520px;max-width:820px;font-size:28px">Design, implementation and simulation-based evaluation of a collision-aware neural inverse-kinematics framework</div>', {});
+  const sub = el('<div class="subtitle" style="left:96px;top:520px;max-width:900px;font-size:28px;white-space:nowrap">Design, implementation and simulation-based evaluation<br>of a collision-aware neural inverse-kinematics framework</div>', {});
   const tag = el('<div class="footer" style="left:96px">UFactory xArm6 · PyBullet · PyTorch</div>');
 
   return {
@@ -40,7 +40,7 @@ export default async function (ctx) {
       show(title, seg(t, c.title, c.title + 0.9, smooth), 24);
       show(sub, seg(t, c.sub, c.sub + 0.9, smooth));
       tag.style.opacity = seg(t, c.sub + 0.4, c.sub + 1.2, smooth).toFixed(3);
-      st.orbit([0.05, 0.12, 0.42], lerp(2.6, 2.15, seg(t, 0, D, smooth)), lerp(-80, -35, seg(t, 0, D, (x) => x)), lerp(8, 16, seg(t, 0, D, smooth)), st.camera, [330, 30]);
+      st.orbit([0.05, 0.12, 0.42], lerp(2.6, 2.15, seg(t, 0, D, smooth)), lerp(-80, -35, seg(t, 0, D, (x) => x)), lerp(8, 16, seg(t, 0, D, smooth)), st.camera, [380, 30]);   // keep the trail clear of the subtitle
       render(st);
     },
   };
