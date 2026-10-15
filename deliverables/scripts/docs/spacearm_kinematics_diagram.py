@@ -130,7 +130,8 @@ def arm(ax, q, labels=True, dims=False):
         rotation_arc(ax, p + d * 0.05, d, col)
         if labels:
             off = np.array([0.10, 0.06, 0.0]) if AXES[i] == "z" else np.array([-0.10, -0.20, 0.02])
-            ax.text(*(p + off), f"J{i + 1}", color=col, fontsize=9, fontweight="bold")
+            ax.text(*(p + off), f"J{i + 1}", color=col, fontsize=10, fontweight="bold", zorder=20,
+                    bbox=dict(boxstyle="round,pad=0.15", fc="white", ec=col, lw=0.8, alpha=0.95))
     triad(ax, tcp, Rt, 0.14, ("x", "y", "z"), fs=7, lw=1.3)
     ax.scatter(*tcp, s=40, color="#111", depthshade=False)
     ax.text(*(tcp + [0.05, 0.0, 0.05]), "TCP", fontsize=9, fontweight="bold")
@@ -163,7 +164,7 @@ def setup(ax, title, elev, azim, lim):
 def main():
     plt.rcParams.update({"font.family": "Inter"})
     fig = plt.figure(figsize=(16, 11.2), dpi=180)
-    fig.text(0.03, 0.965, "STP_Spacearm robot — 3-D kinematics diagram", fontsize=19, fontweight="bold")
+    fig.text(0.03, 0.965, "STP_Spacearm robot — 3-D kinematics diagram (7 DOF: joints J1–J7)", fontsize=19, fontweight="bold")
     fig.text(0.03, 0.94, "7-DOF S-R-S arm (shoulder 3 · elbow 1 · wrist 3) on a free-floating spacecraft · "
              "body frame B at the bus centre (= centre of mass), z through the arm-mount face, y along the panels",
              fontsize=10.5, color="#46546a")
@@ -218,6 +219,8 @@ def main():
     eq.text(0, 0.44, r"$\ell_0 = 10$ cm (pedestal),  $\ell_1..\ell_6$ = link lengths,  $a_i \in \{z,y,z,y,z,y,z\}$",
             fontsize=10, va="top")
     eq.text(0, 0.26, r"$x_{\mathrm{TCP}} = t_7 + R_7\,e_z\cdot 15$ cm   ·   reach ≈ 1.1 m from the shoulder", fontsize=10, va="top")
+    eq.text(0, 0.17, "7 joints but only 3 tip coordinates (position): 4 spare DOF; 7 − 6 = 1 spare even for a full pose (null space).",
+            fontsize=8.5, color="#46546a", va="top")
     eq.text(0, 0.08, "Source: akashrayganguly/STP_Spacearm configs/default.yaml and kinematics.py (commit a15a269).\n"
                      "Drawn from the configuration; none of that project's code was run.", fontsize=7.5, color="#7a879a", va="top")
     OUT.parent.mkdir(parents=True, exist_ok=True)
