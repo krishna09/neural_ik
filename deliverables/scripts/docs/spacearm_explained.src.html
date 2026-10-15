@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>STP_Spacearm explained with simple maths</title>
+<link rel="stylesheet" href="KATEX_CSS">
+<style>
+  @page { size: A4; margin: 17mm 16mm 18mm 16mm; }
+  :root { --ink:#16202e; --ink2:#46546a; --muted:#7a879a; --accent:#1d5fbf; --accent2:#0f7a5c; --warn:#a35a00;
+          --line:#d9e0ea; --soft:#f3f6fa; --soft2:#eef6f2; --soft3:#fff6ea; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Inter, "DejaVu Sans", sans-serif; color: var(--ink); font-size: 10.4pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 23pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 14.5pt; margin: 22px 0 6px; padding-top: 4px; border-top: 2px solid var(--accent); color: var(--ink); break-after: avoid; }
+  h2 .n { color: var(--accent); margin-right: 8px; }
+  h3 { font-size: 11.2pt; margin: 14px 0 4px; color: var(--ink); break-after: avoid; }
+  p { margin: 5px 0 7px; }
+  .lead { font-size: 11.5pt; color: var(--ink2); margin: 2px 0 12px; }
+  .meta { font-size: 9pt; color: var(--muted); }
+  .page-break { break-before: page; }
+  .box { background: var(--soft); border-left: 3px solid var(--accent); padding: 8px 12px; margin: 8px 0 10px; border-radius: 3px; break-inside: avoid; }
+  .box.green { background: var(--soft2); border-left-color: var(--accent2); }
+  .box.warn { background: var(--soft3); border-left-color: var(--warn); }
+  .box .t { font-weight: 700; font-size: 9.6pt; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 2px; }
+  .box.green .t { color: var(--accent2); } .box.warn .t { color: var(--warn); }
+  .eq { background: #fbfcfe; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; margin: 8px 0; break-inside: avoid; }
+  .eq .lbl { float: right; font-size: 8.6pt; color: var(--muted); margin-top: 6px; }
+  .katex-display { margin: 6px 0 !important; }
+  .katex { font-size: 1.06em; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; font-size: 9.3pt; break-inside: avoid; }
+  th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 650; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  tr.hi td { background: #eaf2fd; font-weight: 600; }
+  figure { margin: 8px 0 12px; break-inside: avoid; text-align: center; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 3px; }
+  figcaption { font-size: 8.8pt; color: var(--ink2); margin-top: 3px; text-align: left; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .sym td:first-child { width: 22%; }
+  ul { margin: 4px 0 8px 18px; padding: 0; } li { margin: 2px 0; }
+  .flow { display: flex; align-items: stretch; gap: 6px; margin: 8px 0 12px; break-inside: avoid; }
+  .flow div { flex: 1; background: var(--soft); border: 1px solid var(--line); border-radius: 4px; padding: 6px 7px; font-size: 8.8pt; }
+  .flow div b { display: block; font-size: 9.4pt; color: var(--accent); }
+  .flow .ar { flex: 0 0 auto; background: none; border: none; padding: 18px 0 0; color: var(--muted); font-size: 12pt; }
+  .cover { border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 8px; }
+  .kicker { font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .small { font-size: 9pt; color: var(--ink2); }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: var(--soft); padding: 0 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">STP 2026 · Team 06 · Explainer</div>
+  <h1>How <em>STP_Spacearm</em> works<br>— explained with simple maths</h1>
+  <p class="lead">A guide to the teammate's code: what each part does, the equations behind it in plain words, and how it compares with the Neural IK project.</p>
+  <p class="meta">Source: repository <code>akashrayganguly/STP_Spacearm</code> (commit a15a269) and its deck <code>Spacearm_deck_v2.pptx</code>. Read only, nothing was re-run: all numbers are the teammate's own reported results; figures are taken from the repository's <code>reports/figures/</code>. Neural IK numbers are the ones re-measured for the Neural IK deliverables.</p>
+</div>
+
+<h2><span class="n">1</span>The idea in one page</h2>
+<p>A small satellite floats in space with a 7-joint robot arm on its top deck. When the arm moves, the satellite turns slightly the other way (like a skater pushing off). The task has two levels:</p>
+<div class="flow">
+  <div><b>Level 1 · Plan</b>Given the arm's current joint angles and a target point, produce a smooth joint-space path that never touches the satellite or the arm itself.</div>
+  <div class="ar">→</div>
+  <div><b>Level 2 · Fly</b>Move the arm there for real, every 0.1 s, while a ball suddenly appears, sensors are slightly wrong and motors are weak — and the satellite keeps turning.</div>
+</div>
+<p>The code is built from a few small pieces that each solve one sub-problem:</p>
+<table>
+  <tr><th>Piece</th><th>Plain words</th><th>File</th></tr>
+  <tr><td>World model</td><td>Floating satellite + arm in PyBullet, zero gravity</td><td><code>robot_model.py</code>, <code>sim.py</code></td></tr>
+  <tr><td>Exact arm maths</td><td>Joint angles → tool-tip position (forward kinematics)</td><td><code>kinematics.py</code></td></tr>
+  <tr><td>Dataset</td><td>200,000 poses, each with its exact distance to contact</td><td><code>datagen.py</code></td></tr>
+  <tr><td>DistanceNet</td><td>Neural "how far am I from touching, and which way is safer?"</td><td><code>models/distance_net.py</code></td></tr>
+  <tr><td>TrajNet</td><td>Neural "suggest a whole smooth path in one shot"</td><td><code>models/traj_net.py</code>, <code>losses.py</code></td></tr>
+  <tr><td>Planner</td><td>Guess → improve → polish → verify</td><td><code>planner.py</code></td></tr>
+  <tr><td>Reflex</td><td>Hand-written controller: aim, lean off, push off</td><td><code>control.py</code></td></tr>
+  <tr><td>RL correction</td><td>Tiny network that learns what the reflex gets wrong</td><td><code>rl/ppo_lag.py</code>, <code>envs/space_reach_env.py</code></td></tr>
+  <tr><td>Safety shield</td><td>Last check before the motors: is the next 0.2 s safe?</td><td><code>safety/shield.py</code></td></tr>
+</table>
+
+<h3>Symbols used in this document</h3>
+<table class="sym">
+  <tr><th>Symbol</th><th>Meaning</th><th>Symbol</th><th>Meaning</th></tr>
+  <tr><td>\(q \in \mathbb{R}^7\)</td><td>the 7 joint angles (radians)</td><td>\(\dot q\)</td><td>joint speeds (rad/s)</td></tr>
+  <tr><td>\(x_{\text{tip}}\)</td><td>tool-tip position (3 numbers, metres)</td><td>\(x^\*\)</td><td>target point</td></tr>
+  <tr><td>\(d_{\text{body}}, d_{\text{self}}\)</td><td>gap arm↔satellite, arm↔arm (negative = overlapping)</td><td>\(c(q)\)</td><td>combined clearance (the smaller gap, smoothed)</td></tr>
+  <tr><td>\(\nabla c\)</td><td>gradient: which way to turn the joints to gain clearance</td><td>\(J\)</td><td>Jacobian: how the tip moves when the joints move</td></tr>
+  <tr><td>\(P_0,\dots,P_7\)</td><td>Bézier control poses of a path</td><td>\(s\in[0,1]\)</td><td>position along the path (0 = start, 1 = goal)</td></tr>
+  <tr><td>\(a \in [-1,1]^7\)</td><td>the RL policy's output (correction)</td><td>\(\pi_\phi\)</td><td>the policy network with weights \(\phi\)</td></tr>
+  <tr><td>\(r_t,\; c_t\)</td><td>reward and cost at step \(t\)</td><td>\(\lambda\)</td><td>safety price (Lagrange multiplier)</td></tr>
+  <tr><td>\(\sigma(z)\)</td><td>sigmoid \(1/(1+e^{-z})\)</td><td>\(\|v\|\)</td><td>length of a vector</td></tr>
+</table>
+
+<h2 class="page-break"><span class="n">2</span>The world: a floating satellite</h2>
+<p>The robot is generated from one settings file (<code>configs/default.yaml</code>): a 1 m cube bus (150 kg), two solar panels, a payload box and a 7-link arm made of capsules (18 kg). Total 212 kg; the arm is 8.5 % of the mass. Joint axes alternate z-y-z-y-z-y-z (shoulder 3, elbow 1, wrist 3), like a KUKA iiwa.</p>
+<figure><img src="spacearm_figs/robot_views.png" style="width:86%"><figcaption>The simulated satellite: bus (gold), solar panels (blue), payload (grey), pedestal and arm. Figure from the teammate's repository.</figcaption></figure>
+<p>PyBullet runs with <b>zero gravity and no damping</b>, so nothing slows motion down and momentum is never lost. Starting at rest, the total momentum of the whole system stays zero:</p>
+<div class="eq">$$\underbrace{\sum_i m_i\, v_i}_{\text{linear momentum}} = 0 \qquad\qquad \underbrace{\sum_i \big(I_i\,\omega_i + m_i\, r_i \times v_i\big)}_{\text{angular momentum}} = 0$$</div>
+<p>In words: <b>if the arm swings one way, the satellite must turn the other way</b> so that the totals stay zero. The centre of mass does not move at all. In their test the arm turns joint 2 by 57° and the satellite turns 5.9° the other way.</p>
+<figure><img src="spacearm_figs/01_floating_base.png"><figcaption>Arm moves (left) → satellite turns the other way (middle) → centre of mass stays put (right). Figure from the teammate's repository.</figcaption></figure>
+<div class="box"><div class="t">Why it matters</div>A plan computed in the satellite's own frame is perfect in that frame, but when it is played on the floating satellite the tip misses a target fixed in space by <b>17.2 cm</b> (median, max 33.3 cm). This single number is why Level 2 exists.</div>
+<p>Timing: physics runs at 240 Hz, decisions at 10 Hz, so one decision lasts 24 physics steps (0.1 s). Joints are velocity-controlled, at most 0.5 rad/s.</p>
+
+<h2><span class="n">3</span>Arm maths: forward kinematics and the Jacobian</h2>
+<p>Forward kinematics (FK) answers: <i>given the joint angles, where is the tool tip?</i> It walks along the arm, one joint at a time. Start at the pedestal with position \(t\) and orientation \(R\) (a 3×3 rotation matrix), then for each joint \(i\):</p>
+<div class="eq"><span class="lbl">FK chain</span>$$t \;\leftarrow\; t + R\,e_z\,\ell_i, \qquad R \;\leftarrow\; R \cdot \mathrm{Rot}(\text{axis}_i,\, q_i), \qquad x_{\text{tip}} = t_7 + R_7\, e_z\, \ell_{\text{tool}}$$</div>
+<p>Here \(\ell_i\) are the link lengths (24, 20, 20, 20, 20, 14, 12 cm), \(\ell_{\text{tool}} = 15\) cm and \(e_z = (0,0,1)\): "move along the link, then turn by the joint angle". It is written in PyTorch, so it is <b>differentiable</b>: the networks can learn <i>through</i> it. It matches PyBullet to 0.00012 mm.</p>
+<p>The <b>Jacobian</b> \(J\) (3×7) says how the tip moves for small joint motions:</p>
+<div class="eq">$$\Delta x_{\text{tip}} \;\approx\; J(q)\,\Delta q \qquad\text{(3 numbers out, 7 numbers in)}$$</div>
+<p>Because 7 joints control only 3 numbers (position), there are many ways to reach the same point. The "spare" freedom is called the <b>null space</b>; it is used later to lean the elbow away from the satellite without moving the hand.</p>
+
+<h2 class="page-break"><span class="n">4</span>Making the data</h2>
+<p>No dataset exists for this robot, so it is generated. For each random pose \(q\), PyBullet measures exact, noise-free labels:</p>
+<div class="eq">$$q \;\longmapsto\; \big(\,d_{\text{body}}(q),\; d_{\text{self}}(q),\; x_{\text{tip}}(q)\,\big), \qquad d<0 \;\Rightarrow\; \text{overlapping (collision)}$$</div>
+<ul>
+  <li><b>150,000 uniform poses</b> (75 %): every joint uniform inside the central 98 % of its range.</li>
+  <li><b>50,000 near-contact poses</b> (25 %), made by "nudging": take a pose that is already within 5 cm of contact, add small random noise, keep it only if it is still within 5 cm:
+  <div class="eq">$$q' = q + \varepsilon,\quad \varepsilon \sim \mathcal{N}(0,\;0.05^2)\ \text{rad per joint}, \qquad \text{keep if } \big|\min(d_{\text{body}}, d_{\text{self}})\big| < 5\ \text{cm}$$</div></li>
+  <li><b>Test set</b>: 20,000 uniform poses with a different random seed, never used for training.</li>
+</ul>
+<p>Effect: the share of training poses near a surface goes from 7.7 % to 30.9 %, so the network sees many examples exactly where decisions are made. Generation takes 38 s (0.19 ms per pose) and is byte-for-byte reproducible from the seed.</p>
+
+<h2><span class="n">5</span>DistanceNet: "how close am I to touching?"</h2>
+<p>PyBullet can measure the gap, but only as a number (0.16 ms per pose) — it does not say <i>which way</i> to move to be safer. A small smooth network learns the gap and, through its gradient, the direction.</p>
+<h3>Network</h3>
+<div class="eq">$$\underbrace{[\sin q,\ \cos q]}_{14\ \text{inputs}} \;\xrightarrow{\;256\;}\; \text{SiLU} \;\xrightarrow{\;256\;}\; \text{SiLU} \;\xrightarrow{\;256\;}\; \text{SiLU} \;\longrightarrow\; (\hat d_{\text{body}},\ \hat d_{\text{self}}), \qquad \text{SiLU}(z) = z\,\sigma(z)$$</div>
+<p>Sine and cosine are used because angles wrap around (+180° and −180° are the same). SiLU is a smooth activation, so the gradient \(\nabla c\) is smooth too. 135,938 parameters (0.5 MB).</p>
+<h3>Clearance: a cautious soft minimum</h3>
+<div class="eq"><span class="lbl">soft-min, τ = 1 cm</span>$$c(q) \;=\; -\tau\,\log\!\Big(e^{-\hat d_{\text{body}}/\tau} + e^{-\hat d_{\text{self}}/\tau}\Big), \qquad \min(\hat d_{\text{body}},\hat d_{\text{self}}) - \tau\ln 2 \;\le\; c \;\le\; \min(\hat d_{\text{body}},\hat d_{\text{self}})$$</div>
+<div class="box green"><div class="t">Worked example</div>
+If \(\hat d_{\text{body}} = 2\) cm and \(\hat d_{\text{self}} = 10\) cm: \(c = -\ln(e^{-2}+e^{-10}) \approx 1.9997\) cm — almost exactly the smaller gap.<br>
+If both are 3 cm: \(c = 3 - \ln 2 \approx 2.31\) cm — slightly <i>below</i> the true gap, i.e. on the safe side. Unlike a hard min, its gradient does not jump when the closest surface changes.</div>
+<h3>Training loss: precise where it matters</h3>
+<div class="eq"><span class="lbl">β = 2 cm</span>$$\mathcal{L} = \operatorname{mean}\big[\,w \cdot \ell_\beta(\hat d - d)\,\big], \qquad \ell_\beta(e) = \begin{cases} \dfrac{e^2}{2\beta} & |e| < \beta \\[4pt] |e| - \dfrac{\beta}{2} & \text{otherwise} \end{cases}, \qquad w = \begin{cases} 10 & |d| < 5\ \text{cm} \\ 1 & \text{otherwise}\end{cases}$$</div>
+<p>In words: small mistakes are squared (be precise), big mistakes count only linearly (a few deep collisions cannot dominate), and mistakes near a surface count 10×. Targets are clipped to −5…+30 cm: beyond that no decision changes. Training: AdamW, learning rate \(2\times10^{-3}\) with cosine decay, 60 epochs, batch 1,024, 49 s on 4 CPU threads.</p>
+<table>
+  <tr><th>Test (20,000 unseen poses)</th><th class="num">Target</th><th class="num">Result</th></tr>
+  <tr><td>Mean error, all poses</td><td class="num">≤ 1.0 cm</td><td class="num"><b>0.68 cm</b></td></tr>
+  <tr><td>Mean error within 10 cm of contact</td><td class="num">≤ 2.0 cm</td><td class="num"><b>1.22 cm</b></td></tr>
+  <tr><td>Collide / free called correctly</td><td class="num">≥ 97 %</td><td class="num"><b>98.3 %</b></td></tr>
+  <tr><td>False "safe" (predicts > 3 cm while colliding)</td><td class="num">≤ 0.5 %</td><td class="num"><b>0.12 %</b></td></tr>
+</table>
+<figure><img src="spacearm_figs/04_distance_slice.png"><figcaption>A 2-D slice through joint space: PyBullet truth (left), DistanceNet (middle), error (right). Black line = contact. Figure from the teammate's repository.</figcaption></figure>
+
+<h2 class="page-break"><span class="n">6</span>TrajNet: one forward pass proposes a whole path</h2>
+<p>Input: the start pose and the target point. Output: 35 numbers that describe a smooth path.</p>
+<div class="eq">$$\underbrace{[\sin q_0,\ \cos q_0,\ x^\*]}_{17} \;\longrightarrow\; \text{MLP } (512\times 3,\ \text{SiLU}) \;\longrightarrow\; \underbrace{u}_{35 \,=\, 7\ (\text{goal}) \,+\, 4\times 7\ (\text{middle})}$$</div>
+<h3>Step 1 — squash into the joint limits</h3>
+<div class="eq">$$q = m + h\,\tanh(u), \qquad m = \frac{q_{\max}+q_{\min}}{2}, \quad h = \frac{q_{\max}-q_{\min}}{2}$$</div>
+<p>Because \(\tanh\) is always between −1 and 1, every control pose lies inside the joint limits — whatever the network outputs.</p>
+<h3>Step 2 — a Bézier curve through 8 control poses</h3>
+<div class="eq"><span class="lbl">degree-7 Bézier</span>$$q(s) = \sum_{k=0}^{7} \binom{7}{k}\, s^k (1-s)^{7-k}\, P_k, \qquad P_0 = P_1 = q_0,\quad P_6 = P_7 = q_{\text{goal}},\quad P_2..P_5 = \text{middle poses}$$</div>
+<ul>
+  <li>Each pose on the path is a <b>weighted average</b> of the 8 control poses (the weights add up to 1). So if all control poses are inside the limits, the whole path is too ("convex hull" property).</li>
+  <li>The speed at the ends is \(q'(0) = 7(P_1 - P_0) = 0\) and \(q'(1) = 7(P_7-P_6)=0\): the arm <b>starts and stops at rest</b>.</li>
+</ul>
+<figure><img src="spacearm_figs/05_bezier.png"><figcaption>Left: the 8 weights along the path. Right: one joint of a real plan, pulled toward (not through) the middle points. Figure from the teammate's repository.</figcaption></figure>
+<h3>Step 3 — learning without example paths</h3>
+<p>A target point can be reached by infinitely many poses and paths; copying examples would average several right answers into a wrong one. So TrajNet is <b>self-supervised</b>: it lowers a score that checks the outcome.</p>
+<div class="eq"><span class="lbl">score to minimise</span>$$J(\theta) = \underbrace{100\,\big\|\mathrm{FK}(q_{\text{goal}}) - x^\*\big\|^2}_{\text{reach the target}} \;+\; \underbrace{1000\cdot\frac{1}{16}\sum_{k=1}^{16} \max\!\big(0,\ 0.05 - c(q(s_k))\big)^2}_{\text{stay 5 cm clear (DistanceNet)}} \;+\; \underbrace{0.1 \sum \|\Delta q\|^2}_{\text{smooth}}$$</div>
+<div class="box green"><div class="t">Worked example (units: metres)</div>
+A 1 cm reach miss costs \(100 \times 0.01^2 = 0.01\). Being 3 cm too close on average costs \(1000 \times 0.03^2 = 0.9\) — ninety times more. So the network learns: <b>first never come close, then reach precisely</b>.</div>
+<p>552,483 parameters; 10,000 training steps × 256 queries; 3 min 11 s on 4 CPU threads. Alone it succeeds on 85 % of random and 66 % of hard queries.</p>
+
+<h2 class="page-break"><span class="n">7</span>The planner: guess → refine → polish → verify</h2>
+<div class="flow">
+  <div><b>1 · Guess</b>TrajNet, one pass, ≈ 3 ms</div><div class="ar">→</div>
+  <div><b>2 · Refine ×30</b>Adam on the 35 numbers, ≈ 90 ms</div><div class="ar">→</div>
+  <div><b>3 · Polish ×10</b>exact IK on the goal pose, ≈ 5 ms</div><div class="ar">→</div>
+  <div><b>4 · Verify</b>PyBullet, 100 poses, ≈ 15 ms</div>
+</div>
+<h3>Refine: improve this one path (test-time optimisation)</h3>
+<p>The network is frozen; the 35 numbers \(\theta\) of <i>this</i> path are adjusted directly on the same score \(J\):</p>
+<div class="eq">$$\theta \;\leftarrow\; \theta - \text{Adam}\big(\nabla_\theta J(\theta)\big), \qquad 30\ \text{steps (100 on a retry)}$$</div>
+<p>Adam is gradient descent with a per-number step size that adapts to how noisy each gradient is. Refining buys clearance, but it can pull the tip 1–2 cm off the target.</p>
+<h3>Polish: put the tip exactly on the target</h3>
+<p>Only the goal pose moves, with damped least squares on the exact FK (10 iterations, \(\lambda = 0.01\)):</p>
+<div class="eq"><span class="lbl">DLS IK step</span>$$\Delta q = J^{\mathsf T}\big(J J^{\mathsf T} + \lambda^2 I\big)^{-1}\big(x^\* - x_{\text{tip}}\big)$$</div>
+<p>In words: "move the joints the smallest amount that moves the tip toward the target"; the \(\lambda^2 I\) term keeps steps sane near awkward (singular) poses.</p>
+<h3>Verify</h3>
+<p>PyBullet checks 100 poses along the path: every clearance \(> 0\), tip within 2 cm, all joints inside limits. If anything fails, plan once more with 100 refine steps (needed on 0.5 % of random queries).</p>
+<table>
+  <tr><th>Method (same queries)</th><th class="num">Random 200: success / collide</th><th class="num">Hard 100: success / collide</th><th class="num">Tip error</th><th class="num">Time</th></tr>
+  <tr><td>Baseline: PyBullet IK + straight line</td><td class="num">92 % / 3.5 %</td><td class="num">0 % / 100 %</td><td class="num">0.14 cm</td><td class="num">1 ms</td></tr>
+  <tr><td>TrajNet alone</td><td class="num">85 % / 1.5 %</td><td class="num">66 % / 6 %</td><td class="num">1.02 cm</td><td class="num">2–5 ms</td></tr>
+  <tr><td>+ refine</td><td class="num">56 % / 0.5 %</td><td class="num">54 % / 1 %</td><td class="num">1.85 cm</td><td class="num">≈ 90 ms</td></tr>
+  <tr><td>+ polish (no refine)</td><td class="num">98 % / 1.5 %</td><td class="num">93 % / 7 %</td><td class="num">&lt; 0.01 cm</td><td class="num">8 ms</td></tr>
+  <tr><td>+ refine + polish</td><td class="num">99.5 % / 0.5 %</td><td class="num">100 % / 0 %</td><td class="num">&lt; 0.01 cm</td><td class="num">≈ 99 ms</td></tr>
+  <tr class="hi"><td>Full planner (+ verify, retry)</td><td class="num">100 % / 0 %</td><td class="num">100 % / 0 %</td><td class="num">&lt; 0.01 cm</td><td class="num">99 + 15 ms</td></tr>
+</table>
+<p class="small">"Hard" = queries where the baseline collides (4.6 % of all queries). Refine buys clearance, polish buys precision; only together do they reach 100 %.</p>
+<figure><img src="spacearm_figs/08b_planner_3d.png" style="width:34%"><figcaption>The planned path arcs over the payload (green and blue lines: tool-tip paths). Figure from the teammate's repository.</figcaption></figure>
+
+<h2 class="page-break"><span class="n">8</span>Level 2: flying the arm in a closed loop</h2>
+<p>One episode ("mission"):</p>
+<ul>
+  <li><b>Start:</b> random pose at least 5 cm from contact. <b>Target:</b> fixed in space, ≥ 20 cm away, within 85 % of reach.</li>
+  <li><b>Success:</b> \(\|x_{\text{tip}} - x^\*\| < 2\) cm and tip speed \(< 5\) cm/s. <b>Failure:</b> any contact (body, self, ball) or 20 s.</li>
+</ul>
+<table>
+  <tr><th>Surprise</th><th>At full difficulty</th></tr>
+  <tr><td>Ball obstacle</td><td>80 % of episodes; 5–12 cm; appears 1–5 s in, in the way; half of them drift ≤ 3 cm/s</td></tr>
+  <tr><td>Encoder bias</td><td>each joint reads up to ±2° wrong</td></tr>
+  <tr><td>Weak motors</td><td>each joint gives 70–100 % of the commanded speed</td></tr>
+  <tr><td>Encoder slip</td><td>30 % of episodes: one joint reading jumps 3°</td></tr>
+  <tr><td>Sensor noise</td><td>encoders 0.1°, camera 5 mm, gyro 0.002 rad/s</td></tr>
+</table>
+<p>The robot only sees <b>56 measured numbers</b>: joint readings and speeds, the camera vector tip→target, gyro spin, ball position and size, DistanceNet clearance and direction, and the previous and reflex commands.</p>
+
+<h3>The reflex: a hand-written baseline (no learning)</h3>
+<div class="eq"><span class="lbl">reflex prior</span>$$\dot q_{\text{reflex}} = \underbrace{J^{+} v}_{\text{aim}} \;+\; \underbrace{(I - J^{+}J)\; k_{\text{null}}\, w_s\, \nabla c}_{\text{lean off the satellite}} \;+\; \underbrace{k_{\text{obs}}\, w_o\, \nabla d_{\text{ball}}}_{\text{push off the ball}}$$</div>
+<div class="eq">$$v = \operatorname{clip}_{\|\cdot\|\le 0.15\,\text{m/s}}\big(k_p\,(x^\* - x_{\text{tip}})\big), \qquad J^{+} = J^{\mathsf T}\big(JJ^{\mathsf T} + 0.05^2 I\big)^{-1}$$</div>
+<ul>
+  <li><b>Aim:</b> move the tip straight toward the target (\(k_p = 1\) /s, at most 15 cm/s).</li>
+  <li><b>Lean off:</b> \((I - J^{+}J)\) is the null-space projector — it keeps only joint motions that do <i>not</i> move the hand. The 7th joint swings elbow and wrist away from the satellite (\(k_{\text{null}} = 0.5\) rad/s). The weight \(w_s\) ramps from 0 to 1 as clearance falls from 10 cm to 0.</li>
+  <li><b>Push off:</b> move the joints away from the ball (\(k_{\text{obs}} = 0.5\) rad/s); \(w_o\) ramps 0 → 1 as the ball gap falls from 15 cm to 0.</li>
+  <li>If any joint would exceed 0.5 rad/s, the whole vector is shrunk by the same factor.</li>
+</ul>
+<div class="box warn"><div class="t">Weak spot</div>With a ball right on the straight line, "pull to the target" and "push off the ball" cancel out (a local minimum): the arm hovers 8–12 cm away until the 20 s run out.</div>
+
+<h2 class="page-break"><span class="n">9</span>The RL correction (residual PPO-Lagrangian)</h2>
+<p>Instead of learning everything from scratch (which gave 0 % success after 130k steps), a tiny network learns only a <b>bounded correction on top of the reflex</b>:</p>
+<div class="eq"><span class="lbl">command sent to motors</span>$$\dot q_{\text{cmd}} = \operatorname{clip}\Big(\dot q_{\text{reflex}} + 0.5\cdot \text{fade}\cdot a\Big), \qquad \text{fade} = \min\!\Big(1,\ \frac{\|x_{\text{tip}} - x^\*\|}{10\ \text{cm}}\Big), \qquad a = \pi_\phi(o) \in [-1,1]^7$$</div>
+<p>The correction has at most half the authority and fades out in the last 10 cm, so the reflex alone makes the precise final approach.</p>
+<h3>The policy network</h3>
+<div class="eq">$$o \in \mathbb{R}^{56} \;\longrightarrow\; 64\ (\tanh) \;\longrightarrow\; 64\ (\tanh) \;\longrightarrow\; a \in \mathbb{R}^7, \qquad 56\cdot64+64 + 64\cdot64+64 + 64\cdot7+7 + 7 = 8{,}270\ \text{parameters}$$</div>
+<p>(The last 7 are the exploration noise levels.) It runs in 0.012 ms with NumPy.</p>
+<h3>Reward and cost</h3>
+<div class="eq"><span class="lbl">reward per step</span>$$r_t = 10\,(D_{t-1} - D_t) \;-\; 0.01\,\|a_t - a_{t-1}\|^2 \;-\; 0.005 \;+\; 5\cdot[\text{success}] \;-\; 0.02\,\|a_t\|^2$$</div>
+<p>\(D_t\) is the tip-to-target distance, so the first term pays for <b>progress</b>; the others discourage jerky corrections, wasted time and large corrections. Safety is not in the reward — it is a separate <b>cost</b>:</p>
+<div class="eq">$$c_t = \begin{cases} 1 & \text{if anything is closer than 2 cm (a near miss)} \\ 0 & \text{otherwise}\end{cases}, \qquad \text{budget: } \mathbb{E}\Big[\sum_t c_t\Big] \le 1 \text{ per episode}$$</div>
+<h3>PPO: careful policy updates</h3>
+<div class="eq"><span class="lbl">clipped objective, ε = 0.2</span>$$L(\phi) = \mathbb{E}\Big[\min\big(\rho\,\hat A,\ \operatorname{clip}(\rho,\,1-\varepsilon,\,1+\varepsilon)\,\hat A\big)\Big], \qquad \rho = \frac{\pi_\phi(a\mid o)}{\pi_{\text{old}}(a\mid o)}$$</div>
+<p>\(\hat A\) (the <b>advantage</b>) says whether an action turned out better than expected. The clip stops any single update from changing the policy too much. Advantages are estimated with GAE (\(\gamma = 0.99\), \(\lambda_{\text{GAE}} = 0.95\)):</p>
+<div class="eq">$$\hat A_t = \sum_{l\ge0} (\gamma\lambda_{\text{GAE}})^l\,\delta_{t+l}, \qquad \delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$$</div>
+<h3>The Lagrangian part: a self-adjusting safety price</h3>
+<div class="eq"><span class="lbl">dual ascent</span>$$\hat A = \frac{\hat A_r - \lambda\,\hat A_c}{1+\lambda}, \qquad \lambda \;\leftarrow\; \operatorname{clip}\Big(\lambda + 0.05\,\big(\bar C - 1\big),\ 0,\ 10\Big)$$</div>
+<p>\(\bar C\) is the average near-miss count per episode. If the policy goes over budget, the price \(\lambda\) rises and safety weighs more; if it stays under, \(\lambda\) falls. (In their runs \(\lambda\) never rose above 0.45, so most of the caution came from the reflex and the shield.)</p>
+<h3>Asymmetric critics: the teacher sees more than the student</h3>
+<p>Two value networks (\(V_r\) for reward, \(V_c\) for cost; 90 → 256 → 256 → 1, 89,345 parameters each) are used <b>only during training</b>. They see the 56 sensor numbers plus <b>34 hidden truths</b> (true joint angles, encoder bias, motor gains, satellite orientation, true clearances, ball velocity, time left). The policy that flies sees only the 56 sensor numbers. Training: 3.0 M steps, 4 simulators in parallel, difficulty ramped from 0 to 1 over the first half, ≈ 1 h 45 min on 4 vCPU.</p>
+
+<h2 class="page-break"><span class="n">10</span>The safety shield: one last check</h2>
+<p>Every command passes a model-based filter before it reaches the motors. It predicts the pose 0.2 s ahead (2 control steps) for three step sizes:</p>
+<div class="eq">$$q'(s) = q + s\cdot \dot q_{\text{cmd}}\cdot 0.2\ \text{s}, \qquad s \in \{1,\ \tfrac12,\ \tfrac14\}$$</div>
+<div class="eq"><span class="lbl">safety function</span>$$h(q) = \min\Big(\,c(q) - 6\ \text{cm},\;\; g_{\text{ball}}(q) - 5\ \text{cm}\,\Big), \qquad \text{accept the largest } s \text{ with } h(q'(s)) \ge 0$$</div>
+<p>If no step size is safe, the arm moves along \(\nabla h\) (escape), or stops. The ball gap is pure geometry: each arm link is a capsule (a line segment with radius \(r_{\text{link}}\)) and the ball a sphere (centre \(b\), radius \(r_b\)):</p>
+<div class="eq">$$g_{\text{ball}} = \min_{\text{links}}\Big(\operatorname{dist}\big(b,\ \text{segment}\big) - r_{\text{link}} - r_b\Big)$$</div>
+<div class="box"><div class="t">Why 6 cm and not 5 cm?</div>At 5 cm, 2 of 100 episodes grazed the satellite: after a joint slip the measured angles carried up to 3.6° of bias, so DistanceNet (fed with wrong angles) was ≈ 5.5 cm too optimistic. At 6 cm: 0 collisions in all scenarios, for about 2 points of success.</div>
+<p>Cost of the shield: 0.18 ms per accepted command (3.3 ms when it has to escape). It intervenes on 9–15 % of steps.</p>
+
+<h2><span class="n">11</span>Deployment</h2>
+<p>Only the policy flies. It is exported as three matrix multiplications with the observation normalisation built in, so no PyTorch is needed on board:</p>
+<div class="eq">$$\hat o = \operatorname{clip}\!\Big(\frac{o-\mu}{\sigma},\,-10,\,10\Big), \qquad a = \tanh\!\Big(W_3\,\tanh\big(W_2\,\tanh(W_1\hat o + b_1) + b_2\big) + b_3\Big)$$</div>
+<table>
+  <tr><th>Component (1 CPU thread)</th><th class="num">p50</th><th class="num">p99</th></tr>
+  <tr><td>Policy (NumPy / ONNX)</td><td class="num">0.012 / 0.008 ms</td><td class="num">0.029 / 0.024 ms</td></tr>
+  <tr><td>Reflex</td><td class="num">0.30 ms</td><td class="num">0.59 ms</td></tr>
+  <tr><td>Shield (accepted / escape)</td><td class="num">0.18 / 3.3 ms</td><td class="num">0.38 / 4.5 ms</td></tr>
+  <tr class="hi"><td>Whole control step incl. physics</td><td class="num">4.5 ms</td><td class="num">7.3 ms</td></tr>
+</table>
+<p class="small">The control period is 100 ms, so the whole step uses under 8 % of the time budget.</p>
+
+<h2 class="page-break"><span class="n">12</span>Level 2 results</h2>
+<p>100 identical episodes per controller and scenario (seeds 10000–10099, never used for training):</p>
+<table>
+  <tr><th>Scenario</th><th class="num">Reflex</th><th class="num">Reflex + shield</th><th class="num">RL</th><th class="num">RL + shield</th></tr>
+  <tr><td>S1 no surprises</td><td class="num">88 % / 5 %</td><td class="num">83 % / 0 %</td><td class="num">94 % / 2 %</td><td class="num"><b>89 % / 0 %</b></td></tr>
+  <tr><td>S2 ball only</td><td class="num">58 % / 6 %</td><td class="num">53 % / 1 %</td><td class="num">71 % / 4 %</td><td class="num"><b>68 % / 0 %</b></td></tr>
+  <tr><td>S3 faults + noise</td><td class="num">85 % / 3 %</td><td class="num">77 % / 0 %</td><td class="num">92 % / 3 %</td><td class="num"><b>87 % / 0 %</b></td></tr>
+  <tr class="hi"><td>S4 everything</td><td class="num">45 % / 7 %</td><td class="num">41 % / 1 %</td><td class="num">61 % / 4 %</td><td class="num">58 % / 0 %</td></tr>
+</table>
+<p class="small">Each cell: success / collisions. Time to reach in S4: 11.2 s (reflex) → 8.2 s (RL + shield).</p>
+<figure><img src="spacearm_figs/12_scenarios.png"><figcaption>Success (left) and collisions (right) per scenario and controller. Figure from the teammate's repository.</figcaption></figure>
+<ul>
+  <li>The RL correction adds 6–16 points of success in every scenario and reaches targets ≈ 30 % faster.</li>
+  <li>The shield removes every RL collision (13 → 0) for 3–5 points of success.</li>
+  <li>Without the reflex's push-off, the reflex collides in ≈ 60 % of ball episodes: the classical layer matters.</li>
+  <li>Hardest case: a static ball on the straight path (37 % reflex, 53 % RL + shield). The stretch goal of 70 % in S4 was not met.</li>
+</ul>
+<figure><img src="spacearm_figs/10_episode.png"><figcaption>One episode: the reflex hovers and times out; RL + shield goes around the ball and arrives. Figure from the teammate's repository.</figcaption></figure>
+
+<h2 class="page-break"><span class="n">13</span>Side by side with Neural IK</h2>
+<p>Both projects follow the same pattern — <b>a fast neural guess, an exact classical finish, an independent PyBullet check, and a learned correction on top of a classical controller</b> — but they solve different versions of the problem.</p>
+<h3>Neural IK in the same notation</h3>
+<div class="eq"><span class="lbl">network output → angle</span>$$[\,x^\*,\ \text{quat}^\*,\ q_{\text{seed}}\,] \in \mathbb{R}^{13} \;\longrightarrow\; (\sin\hat q,\ \cos\hat q) \in \mathbb{R}^{12}, \qquad \hat q_i = \operatorname{atan2}(\sin\hat q_i,\ \cos\hat q_i)\ \ (\pm 360^\circ \text{ into the limits})$$</div>
+<div class="eq"><span class="lbl">collision-aware loss</span>$$\mathcal{L} = \operatorname{MSE}\big(\text{sin/cos}\big) + 0.05\cdot \operatorname{mean}\ \sigma\big(C(\hat q)\big)$$</div>
+<p>\(C\) is a frozen yes/no self-collision classifier (6 → 64 → 64 → 1). Its probability is a soft penalty; it does not measure distance.</p>
+<div class="eq"><span class="lbl">Levenberg–Marquardt refinement</span>$$\Delta q = \big(J^{\mathsf T}J + \lambda I\big)^{-1} J^{\mathsf T} e, \qquad \lambda = \|e\|^2 + 10^{-6}, \qquad e = (\text{position error},\ \text{orientation error}) \in \mathbb{R}^6$$</div>
+<div class="eq"><span class="lbl">Level 2 command</span>$$\Delta q_{\text{cmd}} = \Delta q_{\text{potential field}} + 2\cdot \pi_\phi(o), \qquad o \in \mathbb{R}^{101},\ \ \pi_\phi: 2\times64\ \tanh,\ 11{,}078 \text{ parameters}$$</div>
+<table>
+  <tr><th></th><th>Neural IK (yours)</th><th>STP_Spacearm (teammate)</th></tr>
+  <tr><td>Robot / world</td><td>xArm6, 6 joints, fixed base, kinematic motion</td><td>7-joint arm on a 212 kg free-floating satellite, real physics</td></tr>
+  <tr><td>Level 1 target</td><td>full pose: position <b>and</b> orientation</td><td>point: position only</td></tr>
+  <tr><td>Level 1 output</td><td>one goal joint configuration</td><td>whole Bézier path + goal joints</td></tr>
+  <tr><td>Learning style</td><td>supervised (copy known joint angles)</td><td>self-supervised (score the outcome)</td></tr>
+  <tr><td>Collision knowledge</td><td>yes/no classifier, self only, 98.4 %</td><td>distance in cm + direction, body + self, 0.68 cm error</td></tr>
+  <tr><td>Classical finish</td><td>LM with restarts and collision-free retry</td><td>Adam refine + DLS polish</td></tr>
+  <tr><td>Check</td><td>final configuration in PyBullet</td><td>100 poses along the path in PyBullet</td></tr>
+  <tr><td>Level 1 result</td><td>100 % of 2,000 within <b>1 mm and 1°</b>, 0 % collisions, 12.9–37.8 ms</td><td>100 % of 300 within <b>2 cm</b>, 0 % collisions, ≈ 0.1 s</td></tr>
+  <tr><td>Level 2 algorithm</td><td>PPO residual on a potential field</td><td>PPO-Lagrangian residual on a reflex + safety shield</td></tr>
+  <tr><td>Level 2 hardest case</td><td>84 % reached / 2 % collided (200 episodes)</td><td>58 % reached / 0 % collided (100 episodes)</td></tr>
+</table>
+<div class="box warn"><div class="t">Read the numbers carefully</div>The Level 2 success rates are not directly comparable: the teammate's world is harder (floating base, noisy sensors, target fixed in space, 2 cm tip tolerance), while Neural IK's target tolerance is far stricter in Level 1 (1 mm and 1° on the full pose).</div>
+<div class="box green"><div class="t">What each could borrow</div>
+<b>From STP_Spacearm:</b> a distance network with a gradient instead of a yes/no classifier; checking the whole path; a safety shield (removed all collisions there); a free-floating base and a 7th joint for the null-space lean-off; training critics on hidden simulator truths.<br>
+<b>From Neural IK:</b> full 6-D pose accuracy (orientation matters for grasping); tests from home and random starting poses; an "LM alone" ablation showing what the network really contributes.</div>
+
+<h2 class="page-break"><span class="n">14</span>All equations at a glance</h2>
+<table>
+  <tr><th style="width:24%">Part</th><th>Equation</th></tr>
+  <tr><td>Momentum</td><td>\(\sum m_i v_i = 0,\quad \sum (I_i\omega_i + m_i r_i\times v_i) = 0\)</td></tr>
+  <tr><td>Forward kinematics</td><td>\(t \leftarrow t + R e_z \ell_i,\ \ R \leftarrow R\,\mathrm{Rot}(\text{axis}_i,q_i),\ \ x_{\text{tip}} = t_7 + R_7 e_z \ell_{\text{tool}}\)</td></tr>
+  <tr><td>Jacobian</td><td>\(\Delta x_{\text{tip}} \approx J(q)\,\Delta q\)</td></tr>
+  <tr><td>Near-contact data</td><td>\(q' = q + \mathcal{N}(0, 0.05^2)\), keep if \(|\min d| < 5\) cm</td></tr>
+  <tr><td>Clearance</td><td>\(c = -\tau\log(e^{-d_b/\tau} + e^{-d_s/\tau}),\ \tau = 1\) cm</td></tr>
+  <tr><td>DistanceNet loss</td><td>\(\operatorname{mean}[w\,\ell_\beta(\hat d - d)],\ \beta = 2\) cm, \(w = 10\) near contact</td></tr>
+  <tr><td>Joint-limit squash</td><td>\(q = m + h\tanh(u)\)</td></tr>
+  <tr><td>Bézier path</td><td>\(q(s) = \sum_{k=0}^7 \binom7k s^k(1-s)^{7-k}P_k\)</td></tr>
+  <tr><td>TrajNet score</td><td>\(100\|\mathrm{FK}(q_g)-x^\*\|^2 + 1000\,\overline{\max(0,0.05-c)^2} + 0.1\sum\|\Delta q\|^2\)</td></tr>
+  <tr><td>Refine</td><td>\(\theta \leftarrow \theta - \text{Adam}(\nabla_\theta J)\)</td></tr>
+  <tr><td>IK polish</td><td>\(\Delta q = J^{\mathsf T}(JJ^{\mathsf T} + \lambda^2 I)^{-1}(x^\* - x_{\text{tip}})\)</td></tr>
+  <tr><td>Reflex</td><td>\(\dot q = J^+v + (I - J^+J)k_{\text{null}}w_s\nabla c + k_{\text{obs}}w_o\nabla d_{\text{ball}}\)</td></tr>
+  <tr><td>Residual command</td><td>\(\dot q_{\text{cmd}} = \operatorname{clip}(\dot q_{\text{reflex}} + 0.5\,\text{fade}\,a)\)</td></tr>
+  <tr><td>Reward</td><td>\(10(D_{t-1}-D_t) - 0.01\|\Delta a\|^2 - 0.005 + 5[\text{success}] - 0.02\|a\|^2\)</td></tr>
+  <tr><td>PPO</td><td>\(\mathbb{E}[\min(\rho \hat A, \operatorname{clip}(\rho, 0.8, 1.2)\hat A)]\)</td></tr>
+  <tr><td>Lagrangian</td><td>\(\hat A = (\hat A_r - \lambda \hat A_c)/(1+\lambda),\ \ \lambda \leftarrow \operatorname{clip}(\lambda + 0.05(\bar C - 1), 0, 10)\)</td></tr>
+  <tr><td>Shield</td><td>\(h = \min(c - 6\text{ cm},\ g_{\text{ball}} - 5\text{ cm}) \ge 0\) at \(q + s\,\dot q_{\text{cmd}}\,0.2\text{ s}\)</td></tr>
+  <tr><td>Deployed policy</td><td>\(a = \tanh(W_3\tanh(W_2\tanh(W_1\hat o + b_1)+b_2)+b_3)\)</td></tr>
+</table>
+<p class="meta">Prepared for STP 2026 Team 06. All STP_Spacearm values are quoted from that repository's README, reports and configuration (<code>configs/default.yaml</code>); nothing in it was modified or re-run.</p>
+
+</body>
+</html>
